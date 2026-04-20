@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ACME Salud - Sistema de Agendas</title>
+
+    <!-- Material Design 3 -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <!-- Material Web Components -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@material/web/": "https://esm.run/@material/web/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@material/web/all.js";
+      import { styles as typescaleStyles } from "@material/web/typography/md-typescale-styles.js";
+      document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
+    </script>
+
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="top-app-bar">
+      <div class="container">
+        <div class="app-bar-content">
+          <div class="logo-section">
+            <span class="material-icons logo-icon">local_hospital</span>
+            <h1 class="logo-text">ACME Salud</h1>
+          </div>
+          <nav class="nav-menu">
+            <a href="index.html" class="nav-link active">Inicio</a>
+            <a href="#servicios" class="nav-link">Servicios</a>
+            <a href="#clinicas" class="nav-link">Clínicas</a>
+            <a href="#contacto" class="nav-link">Contacto</a>
+          </nav>
+          <div class="actions">
+            <md-filled-button href="login.html">
+              <span class="material-icons" slot="icon">person</span>
+              Iniciar Sesión
+            </md-filled-button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">Sistema de Agendas en Línea</h1>
+          <p class="hero-subtitle">Agenda tu cita médica fácil y rápido</p>
+
+          <div class="hero-actions">
+            <md-filled-button class="primary-action" onclick="window.location.href = 'agendar-cita.html'">
+              <span class="material-icons" slot="icon">event</span>
+              Agendar Nueva Cita
+            </md-filled-button>
+            <md-outlined-button onclick="window.location.href = 'mis-citas.html'">
+              <span class="material-icons" slot="icon">list_alt</span>
+              Mis Citas
+            </md-outlined-button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+      <div class="container">
+        <div class="features-grid">
+          <md-elevation-card class="feature-card">
+            <div class="card-content">
+              <span class="material-icons feature-icon">medical_services</span>
+              <h3>Especialistas Disponibles</h3>
+              <p>Accede a los mejores médicos especialistas en pediatría, cardiología, oncología y más</p>
+            </div>
+          </md-elevation-card>
+
+          <md-elevation-card class="feature-card">
+            <div class="card-content">
+              <span class="material-icons feature-icon">schedule</span>
+              <h3>Horarios Flexibles</h3>
+              <p>Encuentra citas disponibles que se ajusten a tu agenda, con disponibilidad en tiempo real</p>
+            </div>
+          </md-elevation-card>
+
+          <md-elevation-card class="feature-card">
+            <div class="card-content">
+              <span class="material-icons feature-icon">location_on</span>
+              <h3>Ubicaciones Cercanas</h3>
+              <p>Tres puntos de atención estratégicamente ubicados: Norte, Centro y Sur</p>
+            </div>
+          </md-elevation-card>
+        </div>
+      </div>
+    </section>
+
+    <!-- Clinicas Section -->
+    <section class="clinicas" id="clinicas">
+      <div class="container">
+        <h2 class="section-title">Nuestras Clínicas</h2>
+
+        <div class="clinicas-grid">
+          <!-- Clínica Norte -->
+          <md-outlined-card class="clinica-card">
+            <div class="clinica-header">
+              <span class="material-icons clinica-icon">business</span>
+              <h3>Clínica Norte</h3>
+            </div>
+            <div class="clinica-body">
+              <div class="info-row">
+                <span class="material-icons small">pin_drop</span>
+                <span>Carrera 7 #100-50</span>
+              </div>
+              <div class="info-row">
+                <span class="material-icons small">phone</span>
+                <span>+57 1 234 5679</span>
+              </div>
+              <div class="servicios-list">
+                <h4>Servicios:</h4>
+                <ul>
+                  <li>Medicina General</li>
+                  <li>Pediatría</li>
+                  <li>Obstetricia</li>
+                </ul>
+              </div>
+              <md-text-button>
+                <span class="material-icons" slot="icon">map</span>
+                Ver Mapa
+              </md-text-button>
+            </div>
+          </md-outlined-card>
+
+          <!-- Clínica Centro -->
+          <md-outlined-card class="clinica-card">
+            <div class="clinica-header">
+              <span class="material-icons clinica-icon">business</span>
+              <h3>Clínica Centro</h3>
+            </div>
+            <div class="clinica-body">
+              <div class="info-row">
+                <span class="material-icons small">pin_drop</span>
+                <span>Calle 45 #15-30</span>
+              </div>
+              <div class="info-row">
+                <span class="material-icons small">phone</span>
+                <span>+57 1 234 5680</span>
+              </div>
+              <div class="servicios-list">
+                <h4>Servicios:</h4>
+                <ul>
+                  <li>Medicina General</li>
+                  <li>Nefrología</li>
+                  <li>Gastroenterología</li>
+                </ul>
+              </div>
+              <md-text-button>
+                <span class="material-icons" slot="icon">map</span>
+                Ver Mapa
+              </md-text-button>
+            </div>
+          </md-outlined-card>
+
+          <!-- Clínica Sur -->
+          <md-outlined-card class="clinica-card">
+            <div class="clinica-header">
+              <span class="material-icons clinica-icon">business</span>
+              <h3>Clínica Sur</h3>
+            </div>
+            <div class="clinica-body">
+              <div class="info-row">
+                <span class="material-icons small">pin_drop</span>
+                <span>Autopista Sur #85-20</span>
+              </div>
+              <div class="info-row">
+                <span class="material-icons small">phone</span>
+                <span>+57 1 234 5681</span>
+              </div>
+              <div class="servicios-list">
+                <h4>Servicios:</h4>
+                <ul>
+                  <li>Medicina General</li>
+                  <li>Oncología</li>
+                  <li>Cardiología</li>
+                </ul>
+              </div>
+              <md-text-button>
+                <span class="material-icons" slot="icon">map</span>
+                Ver Mapa
+              </md-text-button>
+            </div>
+          </md-outlined-card>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta">
+      <div class="container">
+        <div class="cta-content">
+          <h2>¿Listo para tu próxima cita?</h2>
+          <p>Agenda ahora y recibe confirmación inmediata</p>
+          <md-filled-button onclick="window.location.href = 'agendar-cita.html'" class="cta-button">
+            <span class="material-icons" slot="icon">event_available</span>
+            Agendar Ahora
+          </md-filled-button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-section">
+            <h3>ACME Salud</h3>
+            <p>Institución Prestadora de Servicios de Salud</p>
+            <p>NIT: 1100155555</p>
+          </div>
+
+          <div class="footer-section">
+            <h4>Enlaces Útiles</h4>
+            <ul>
+              <li><a href="#servicios">Servicios</a></li>
+              <li><a href="#clinicas">Clínicas</a></li>
+              <li><a href="mis-citas.html">Mis Citas</a></li>
+              <li><a href="#contacto">Contacto</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h4>Contacto</h4>
+            <div class="contact-info">
+              <div class="info-row">
+                <span class="material-icons small">phone</span>
+                <span>+57 1 234 5678</span>
+              </div>
+              <div class="info-row">
+                <span class="material-icons small">email</span>
+                <span>contacto@acmesalud.com</span>
+              </div>
+              <div class="info-row">
+                <span class="material-icons small">language</span>
+                <span>www.acmesalud.com</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>&copy; 2026 ACME Salud. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+  </body>
+</html>

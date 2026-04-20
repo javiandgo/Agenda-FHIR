@@ -1,0 +1,707 @@
+/* ==========================================
+   Página de Agendamiento - ACME Salud
+   ========================================== */
+
+.booking-container {
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 72px);
+  padding: var(--spacing-xl) 0;
+}
+
+.booking-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-2);
+  padding: var(--spacing-xl);
+}
+
+/* ==========================================
+   Stepper
+   ========================================== */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xxl);
+  padding: var(--spacing-lg) 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+  position: relative;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.step.active .step-circle {
+  background-color: var(--md-sys-color-primary);
+  color: white;
+  box-shadow: 0 0 0 8px rgba(0, 102, 204, 0.1);
+}
+
+.step.completed .step-circle {
+  background-color: var(--md-sys-color-secondary);
+  color: white;
+}
+
+.step.completed .step-circle::before {
+  content: "✓";
+}
+
+.step-label {
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 500;
+  text-align: center;
+}
+
+.step.active .step-label {
+  color: var(--md-sys-color-primary);
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background-color: var(--md-sys-color-outline-variant);
+  margin: 0 var(--spacing-sm);
+  margin-bottom: 24px;
+}
+
+.step.active + .step-line,
+.step.completed + .step-line {
+  background-color: var(--md-sys-color-primary);
+}
+
+/* ==========================================
+   Step Content
+   ========================================== */
+.step-content {
+  display: none;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.step-content.active {
+  display: block;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-header {
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+}
+
+.step-header h2 {
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--md-sys-color-on-surface);
+}
+
+.step-header p {
+  font-size: 16px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.selected-info {
+  background-color: var(--md-sys-color-primary-container);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-md);
+}
+
+/* ==========================================
+   Search Box
+   ========================================== */
+.search-box {
+  margin-bottom: var(--spacing-lg);
+}
+
+.full-width {
+  width: 100%;
+}
+
+md-outlined-text-field {
+  --md-outlined-text-field-container-shape: var(--radius-full);
+}
+
+/* ==========================================
+   Specialty Grid (Step 1)
+   ========================================== */
+.specialty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.specialty-card {
+  --md-outlined-card-outline-color: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.specialty-card:hover {
+  box-shadow: var(--elevation-2);
+  transform: translateY(-4px);
+}
+
+.specialty-card.selected {
+  --md-outlined-card-outline-color: var(--md-sys-color-primary);
+  --md-outlined-card-outline-width: 2px;
+  background-color: var(--md-sys-color-primary-container);
+}
+
+.specialty-content {
+  padding: var(--spacing-lg);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.specialty-icon {
+  font-size: 48px;
+  color: var(--md-sys-color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.specialty-content h3 {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface);
+}
+
+.available-slots {
+  font-size: 14px;
+  color: var(--md-sys-color-secondary);
+  font-weight: 500;
+}
+
+.select-btn {
+  margin-top: var(--spacing-sm);
+  width: 100%;
+}
+
+/* ==========================================
+   Location Filter (Step 2)
+   ========================================== */
+.location-filter {
+  margin-bottom: var(--spacing-xl);
+}
+
+.location-filter h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-md);
+}
+
+.chip-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+md-filter-chip {
+  --md-filter-chip-container-shape: var(--radius-full);
+}
+
+/* ==========================================
+   Doctors List (Step 2)
+   ========================================== */
+.doctors-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.doctor-card {
+  --md-outlined-card-outline-color: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+}
+
+.doctor-card:hover {
+  box-shadow: var(--elevation-2);
+}
+
+.doctor-card.selected {
+  --md-outlined-card-outline-color: var(--md-sys-color-primary);
+  --md-outlined-card-outline-width: 2px;
+  background-color: var(--md-sys-color-primary-container);
+}
+
+.doctor-info {
+  padding: var(--spacing-lg);
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.doctor-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, var(--md-sys-color-tertiary) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.doctor-avatar .material-icons {
+  font-size: 48px;
+  color: white;
+}
+
+.doctor-details {
+  flex: 1;
+}
+
+.doctor-details h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.doctor-specialty {
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: var(--spacing-sm);
+}
+
+.doctor-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: 4px;
+}
+
+.doctor-meta.next-available {
+  color: var(--md-sys-color-primary);
+  font-weight: 500;
+  margin-top: var(--spacing-sm);
+}
+
+.doctor-action {
+  display: flex;
+  align-items: center;
+}
+
+.select-doctor-btn {
+  min-width: 120px;
+}
+
+/* ==========================================
+   Selection Summary (Step 3)
+   ========================================== */
+.selection-summary {
+  background-color: var(--md-sys-color-surface-variant);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-md);
+}
+
+.selection-summary p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.coverage-info {
+  color: var(--md-sys-color-secondary);
+  font-weight: 500;
+  margin-top: var(--spacing-sm) !important;
+}
+
+/* ==========================================
+   Calendar (Step 3)
+   ========================================== */
+.calendar-container {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.calendar-header h3 {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: var(--spacing-sm);
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.calendar-day.empty {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.calendar-day.unavailable {
+  color: var(--md-sys-color-outline);
+  cursor: not-allowed;
+}
+
+.calendar-day.available {
+  color: var(--md-sys-color-on-surface);
+}
+
+.calendar-day.available:hover {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.calendar-day.available::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--md-sys-color-secondary);
+}
+
+.calendar-day.active {
+  background-color: var(--md-sys-color-primary);
+  color: white;
+}
+
+.calendar-day.active::after {
+  background-color: white;
+}
+
+/* ==========================================
+   Time Slots (Step 3)
+   ========================================== */
+.time-slots-container {
+  margin-bottom: var(--spacing-xl);
+}
+
+.time-slots-container h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-lg);
+}
+
+.time-section {
+  margin: 24px 0;
+}
+
+.time-section h4 {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: var(--spacing-md);
+}
+
+.time-slots {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.time-slot {
+  --md-filled-button-container-shape: var(--radius-md);
+  --md-outlined-button-container-shape: var(--radius-md);
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slot-duration {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.time-slot.selected {
+  --md-filled-button-container-color: var(--md-sys-color-secondary);
+}
+
+.time-slot.selected .material-icons {
+  color: white !important;
+}
+
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--md-sys-color-primary-container);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-lg);
+  font-size: 14px;
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.info-message .material-icons {
+  color: var(--md-sys-color-primary);
+}
+
+/* ==========================================
+   Summary Cards (Step 4)
+   ========================================== */
+.summary-card,
+.reason-card {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.summary-header .material-icons {
+  font-size: 32px;
+  color: var(--md-sys-color-primary);
+}
+
+.summary-header h3 {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.summary-row {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.summary-row .material-icons {
+  color: var(--md-sys-color-primary);
+  margin-top: 2px;
+}
+
+.summary-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-detail strong {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.summary-detail span {
+  font-size: 16px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.important-info {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: #fff4e5;
+  border-radius: var(--radius-md);
+  border-left: 4px solid #ff9900;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  color: #e65100;
+}
+
+.important-info ul {
+  list-style: none;
+  padding-left: 28px;
+}
+
+.important-info li {
+  margin: 8px 0;
+  font-size: 14px;
+  position: relative;
+}
+
+.important-info li::before {
+  content: "•";
+  position: absolute;
+  left: -16px;
+  color: #ff9900;
+  font-weight: bold;
+}
+
+.reason-card h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-md);
+}
+
+/* ==========================================
+   Terms Section
+   ========================================== */
+.terms-section {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md);
+  background-color: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-md);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+md-checkbox {
+  --md-checkbox-selected-container-color: var(--md-sys-color-primary);
+}
+
+/* ==========================================
+   Step Actions
+   ========================================== */
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.step-actions md-filled-button,
+.step-actions md-outlined-button {
+  min-width: 140px;
+  padding: 0 var(--spacing-xl);
+}
+
+/* ==========================================
+   Responsive
+   ========================================== */
+@media (max-width: 768px) {
+  .booking-wrapper {
+    padding: var(--spacing-md);
+  }
+
+  .stepper {
+    overflow-x: auto;
+    padding-bottom: var(--spacing-md);
+  }
+
+  .step-label {
+    font-size: 10px;
+  }
+
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .specialty-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-info {
+    flex-direction: column;
+  }
+
+  .doctor-avatar {
+    margin: 0 auto;
+  }
+
+  .doctor-action {
+    width: 100%;
+  }
+
+  .select-doctor-btn {
+    width: 100%;
+  }
+
+  .calendar-day {
+    font-size: 12px;
+  }
+
+  .time-slot {
+    min-width: 100px;
+  }
+
+  .step-actions {
+    flex-direction: column-reverse;
+  }
+
+  .step-actions md-filled-button,
+  .step-actions md-outlined-button {
+    width: 100%;
+  }
+}

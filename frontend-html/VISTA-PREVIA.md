@@ -1,0 +1,365 @@
+# 📸 Vista Previa del Prototipo
+
+## Página Principal (index.html)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  ☰  ACME Salud          Inicio  Servicios  Contáctanos   [Ingresar]│
+└─────────────────────────────────────────────────────────────────────┘
+
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                                                               ║
+    ║         Tu Salud, Nuestra Prioridad                          ║
+    ║                                                               ║
+    ║    Sistema Unificado de Agendamiento de Citas Médicas       ║
+    ║                                                               ║
+    ║         [  Agendar Cita Ahora  ]   [Mis Citas]              ║
+    ║                                                               ║
+    ╚═══════════════════════════════════════════════════════════════╝
+
+    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+    │   📅             │  │   🌐             │  │   📋             │
+    │                  │  │                  │  │                  │
+    │ Agendamiento     │  │ Múltiples        │  │ Historial        │
+    │ Fácil            │  │ Canales          │  │ de Citas         │
+    │                  │  │                  │  │                  │
+    │ Agenda tu cita   │  │ Portal web,      │  │ Consulta todas   │
+    │ en solo 3 pasos  │  │ móvil, call      │  │ tus citas en     │
+    │ sencillos        │  │ center 24/7      │  │ un solo lugar    │
+    │                  │  │                  │  │                  │
+    └──────────────────┘  └──────────────────┘  └──────────────────┘
+
+    ─────────────────── Nuestras Clínicas ───────────────────
+
+    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+    │ 🏥 Clínica Norte │  │ 🏥 Clínica Centro│  │ 🏥 Clínica Sur   │
+    │                  │  │                  │  │                  │
+    │ Carrera 7        │  │ Calle 26         │  │ Autopista Sur    │
+    │ #100-50          │  │ #15-30           │  │ #42-10           │
+    │                  │  │                  │  │                  │
+    │ 15 especialidades│  │ 12 especialidades│  │ 10 especialidades│
+    │ 28 médicos       │  │ 22 médicos       │  │ 18 médicos       │
+    │                  │  │                  │  │                  │
+    │ [Ver ubicación]  │  │ [Ver ubicación]  │  │ [Ver ubicación]  │
+    └──────────────────┘  └──────────────────┘  └──────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  ACME Salud © 2026 | Política de Privacidad | Términos y Condiciones│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Flujo de Agendamiento - Paso 1: Especialidad
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  ←  Agendar Cita                                                    │
+└─────────────────────────────────────────────────────────────────────┘
+
+        Paso 1          Paso 2          Paso 3          Paso 4
+        ╭───╮           ╭───╮           ╭───╮           ╭───╮
+        │ 1 │───────────│ 2 │───────────│ 3 │───────────│ 4 │
+        ╰───╯           ╰───╯           ╰───╯           ╰───╯
+      Especialidad      Médico       Fecha/Hora      Confirmar
+        (azul)         (gris)         (gris)          (gris)
+
+
+              ¿Qué especialidad médica necesitas?
+         Selecciona la especialidad para tu consulta
+
+    ┌───────────────────────────────────────────────────────────┐
+    │  🔍 Buscar especialidad...                                │
+    └───────────────────────────────────────────────────────────┘
+
+    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+    │   🧒            │  │   🤰            │  │   ❤️            │
+    │                 │  │                 │  │                 │
+    │  Pediatría      │  │  Gineco         │  │  Cardiología    │
+    │                 │  │  Obstetricia    │  │                 │
+    │  98 cupos       │  │  45 cupos       │  │  32 cupos       │
+    │  disponibles    │  │  disponibles    │  │  disponibles    │
+    │                 │  │                 │  │                 │
+    │ [Seleccionar]   │  │ [Seleccionar]   │  │ [Seleccionar]   │
+    └─────────────────┘  └─────────────────┘  └─────────────────┘
+
+    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+    │   🫘            │  │   🧬            │  │   🍽️            │
+    │                 │  │                 │  │                 │
+    │  Nefrología     │  │  Oncología      │  │  Gastro         │
+    │                 │  │                 │  │  enterología    │
+    │  28 cupos       │  │  15 cupos       │  │  51 cupos       │
+    │  disponibles    │  │  disponibles    │  │  disponibles    │
+    │                 │  │                 │  │                 │
+    │ [Seleccionar]   │  │ [Seleccionar]   │  │ [Seleccionar]   │
+    └─────────────────┘  └─────────────────┘  └─────────────────┘
+
+    ─────────────────────────────────────────────────────────────
+                                             [  Siguiente  ]
+```
+
+---
+
+## Flujo de Agendamiento - Paso 2: Médico
+
+```
+        Paso 1          Paso 2          Paso 3          Paso 4
+        ╭───╮           ╭───╮           ╭───╮           ╭───╮
+        │ ✓ │───────────│ 2 │───────────│ 3 │───────────│ 4 │
+        ╰───╯           ╰───╯           ╰───╯           ╰───╯
+      Especialidad      Médico       Fecha/Hora      Confirmar
+       (verde ✓)       (azul)         (gris)          (gris)
+
+
+            Selecciona tu médico de Pediatría
+    ┌──────────────────────────────────────────────────┐
+    │ ✓ Pediatría                                      │
+    └──────────────────────────────────────────────────┘
+
+    Filtrar por ubicación:
+    [ Todas ]  [ Clínica Norte ]  [ Clínica Centro ]  [ Clínica Sur ]
+
+    ┌───────────────────────────────────────────────────────────┐
+    │  ╭────╮                                                   │
+    │  │ 👨 │  Dr. Gregorio Casas                              │
+    │  ╰────╯  Pediatría                                        │
+    │          ⭐⭐⭐⭐⭐ 4.8/5 • 12 años de experiencia        │
+    │          📍 Clínica Norte                                 │
+    │          🕐 Próxima disponibilidad: Mañana 9:00 AM        │
+    │                                                           │
+    │                              [ Seleccionar Médico ]       │
+    └───────────────────────────────────────────────────────────┘
+
+    ┌───────────────────────────────────────────────────────────┐
+    │  ╭────╮                                                   │
+    │  │ 👩 │  Dra. Elmer Luna                                 │
+    │  ╰────╯  Pediatría - Neonatología                         │
+    │          ⭐⭐⭐⭐⭐ 4.9/5 • 15 años de experiencia        │
+    │          📍 Clínica Centro                                │
+    │          🕐 Próxima disponibilidad: Viernes 2:00 PM       │
+    │                                                           │
+    │                              [ Seleccionar Médico ]       │
+    └───────────────────────────────────────────────────────────┘
+
+    ─────────────────────────────────────────────────────────────
+    [ Anterior ]                                [  Siguiente  ]
+```
+
+---
+
+## Flujo de Agendamiento - Paso 3: Fecha y Hora
+
+```
+        Paso 1          Paso 2          Paso 3          Paso 4
+        ╭───╮           ╭───╮           ╭───╮           ╭───╮
+        │ ✓ │───────────│ ✓ │───────────│ 3 │───────────│ 4 │
+        ╰───╯           ╰───╯           ╰───╯           ╰───╯
+      Especialidad      Médico       Fecha/Hora      Confirmar
+                                      (azul)
+
+
+              Selecciona fecha y hora
+    ┌──────────────────────────────────────────────────┐
+    │ ✓ Pediatría → Dr. Gregorio Casas                │
+    └──────────────────────────────────────────────────┘
+
+    ┌─────────────── Abril 2026 ──────────────────────┐
+    │  ←                                            →  │
+    │                                                  │
+    │  Dom  Lun  Mar  Mie  Jue  Vie  Sab              │
+    │        20   21   22   23   24   25              │
+    │   26  [27] (28)  29   30   --   --              │
+    │                                                  │
+    │  Leyenda:                                        │
+    │  [27] = Disponible (hover)                       │
+    │  (28) = Seleccionado (azul)                      │
+    │   •  = Indicador de disponibilidad               │
+    └──────────────────────────────────────────────────┘
+
+    Horarios disponibles para Lunes, 28 de Abril
+
+    Mañana
+    ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+    │ 7:00 AM │  │ 8:00 AM │  │[9:00 AM]│  │10:00 AM │
+    │ 30 min  │  │ 30 min  │  │ 30 min  │  │ 30 min  │
+    └─────────┘  └─────────┘  └─────────┘  └─────────┘
+                              (seleccionado)
+
+    Tarde
+    ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+    │ 2:00 PM │  │ 3:00 PM │  │ 4:00 PM │  │ 5:00 PM │
+    │ 30 min  │  │ 30 min  │  │ 30 min  │  │ 30 min  │
+    └─────────┘  └─────────┘  └─────────┘  └─────────┘
+
+    ⓘ Los horarios están sujetos a disponibilidad en tiempo real
+
+    ─────────────────────────────────────────────────────────────
+    [ Anterior ]                                [  Siguiente  ]
+```
+
+---
+
+## Flujo de Agendamiento - Paso 4: Confirmación
+
+```
+        Paso 1          Paso 2          Paso 3          Paso 4
+        ╭───╮           ╭───╮           ╭───╮           ╭───╮
+        │ ✓ │───────────│ ✓ │───────────│ ✓ │───────────│ 4 │
+        ╰───╯           ╰───╯           ╰───╯           ╰───╯
+      Especialidad      Médico       Fecha/Hora      Confirmar
+                                                       (azul)
+
+
+              Confirma tu cita médica
+
+    ┌─────────────────────────────────────────────────────────┐
+    │  📅  Resumen de tu Cita                                 │
+    │  ────────────────────────────────────────────────────   │
+    │                                                          │
+    │  📅  Fecha y Hora                                        │
+    │      Lunes, 28 de Abril de 2026 - 9:00 AM               │
+    │                                                          │
+    │  👨‍⚕️  Médico                                             │
+    │      Dr. Gregorio Casas                                  │
+    │                                                          │
+    │  🏥  Especialidad                                        │
+    │      Pediatría - Primera vez                             │
+    │                                                          │
+    │  📍  Ubicación                                           │
+    │      Clínica Norte - Carrera 7 #100-50                   │
+    │      [Ver mapa]                                          │
+    │                                                          │
+    │  💳  Cobertura                                           │
+    │      Salud Completa                                      │
+    │                                                          │
+    │  ⚠️  Información Importante                              │
+    │  • Llega con 15 minutos de anticipación                  │
+    │  • Trae tu documento de identidad y carnet de la EPS     │
+    │  • Cancelaciones: con mínimo 24 horas de anticipación   │
+    │  • Recibirás recordatorio 24 horas antes                │
+    └─────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────┐
+    │  ☑️ Acepto los términos y condiciones                   │
+    │  ☑️ Autorizo el tratamiento de mis datos personales     │
+    └─────────────────────────────────────────────────────────┘
+
+    ─────────────────────────────────────────────────────────────
+    [ Anterior ]                              [ Confirmar Cita ]
+```
+
+---
+
+## Página de Confirmación (confirmacion.html)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│   ╔═══════════════════════════════════════════════════════════╗   │
+│   ║   ╭────╮                                                   ║   │
+│   ║   │ ✓  │   Verde/Azul gradient background                ║   │
+│   ║   ╰────╮                                                   ║   │
+│   ║                                                            ║   │
+│   ║           ¡Cita Confirmada!                                ║   │
+│   ║   Tu cita ha sido agendada exitosamente                   ║   │
+│   ║                                                            ║   │
+│   ╚═══════════════════════════════════════════════════════════╝   │
+│                                                                     │
+│       Número de confirmación                                       │
+│       ACM-2026-04521                                               │
+│                                                                     │
+│   ┌──────────────────────────────────────────────────────────┐    │
+│   │  📅  Fecha y Hora                                        │    │
+│   │      Lunes, 28 de Abril de 2026 - 9:00 AM               │    │
+│   │                                                          │    │
+│   │  👨‍⚕️  Médico                                             │    │
+│   │      Dr. Gregorio Casas                                  │    │
+│   │                                                          │    │
+│   │  🏥  Especialidad                                        │    │
+│   │      Pediatría - Primera vez                             │    │
+│   │                                                          │    │
+│   │  📍  Ubicación                                           │    │
+│   │      Clínica Norte - Carrera 7 #100-50, Bogotá           │    │
+│   │                                                          │    │
+│   │  💳  Cobertura                                           │    │
+│   │      Salud Completa - EPS                                │    │
+│   └──────────────────────────────────────────────────────────┘    │
+│                                                                     │
+│   ┌──────────────────────────────────────────────────────────┐    │
+│   │  ⚠️  Información Importante                              │    │
+│   │  • Llega con 15 minutos de anticipación                  │    │
+│   │  • Trae tu documento de identidad y carnet de la EPS     │    │
+│   │  • Si requieres cancelar o reagendar, hazlo con mínimo   │    │
+│   │    24 horas de anticipación                              │    │
+│   │  • Recibirás un recordatorio por SMS y correo 24 horas   │    │
+│   │    antes de tu cita                                      │    │
+│   │  • Para primera vez, llega con 30 minutos de             │    │
+│   │    anticipación (historia clínica)                       │    │
+│   └──────────────────────────────────────────────────────────┘    │
+│                                                                     │
+│   ┌─────────────────────┐  ┌──────────────────────────┐          │
+│   │ 📥 Descargar PDF    │  │ 📅 Agregar a Calendario  │          │
+│   └─────────────────────┘  └──────────────────────────┘          │
+│                                                                     │
+│        🏠 Volver al Inicio      ➕ Agendar otra cita              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Paleta de Colores
+
+```
+Primary (Azul)          Secondary (Verde)       Tertiary (Morado)
+███████████████         ███████████████         ███████████████
+  #0066CC                 #00A859                 #7B61FF
+
+Error (Rojo)           Surface (Gris claro)    Background
+███████████████         ███████████████         ███████████████
+  #BA1A1A                 #F8F9FA                 #FFFFFF
+```
+
+---
+
+## Tipografía
+
+```
+H1 - Display Large
+32px • Roboto Medium • Line height 40px
+
+H2 - Headline Large
+28px • Roboto Regular • Line height 36px
+
+H3 - Title Large
+20px • Roboto Medium • Line height 28px
+
+Body - Body Large
+16px • Roboto Regular • Line height 24px
+
+Caption - Label Small
+12px • Roboto Regular • Line height 16px
+```
+
+---
+
+## Componentes Material Design 3 Usados
+
+```
+✓ md-top-app-bar        - Barra de navegación superior
+✓ md-filled-button      - Botones principales (azul sólido)
+✓ md-outlined-button    - Botones secundarios (borde)
+✓ md-text-button        - Botones de texto (sin fondo)
+✓ md-outlined-card      - Tarjetas con borde
+✓ md-filter-chip        - Chips de filtro de ubicación
+✓ md-checkbox           - Casillas de verificación
+✓ md-outlined-text-field - Campos de búsqueda
+✓ md-icon               - Iconos Material
+```
+
+---
+
+Para ver el prototipo funcionando:
+
+1. Abre `frontend-html/index.html` en tu navegador
+2. Lee `GUIA-PRUEBA.md` para instrucciones detalladas
+3. Consulta `README.md` para documentación técnica
