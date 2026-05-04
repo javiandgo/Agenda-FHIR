@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patient - ACME Salud FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><span class="material-icons brand-icon">local_hospital</span><div><div class="brand-name">ACME Salud</div><div class="brand-sub">Sistema FHIR R4</div></div></div>
+    <div class="sidebar-user"><div class="user-avatar"><span class="material-icons">person</span></div><div class="user-info"><div class="user-name" id="sidebar-user-name">-</div><span class="user-role" id="sidebar-user-role">Admin</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a class="nav-item" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
+      <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
+      <div class="nav-section-title">Recursos FHIR</div>
+      <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item active" href="patients.html"><span class="material-icons">people</span> Patient</a>
+      <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
+      <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <div class="nav-section-title">Portal</div>
+      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="sidebar-toggle"><span class="material-icons">menu</span></button>
+        <div><div class="topbar-title">Patient</div><div class="breadcrumb">FHIR Resource · Registro de pacientes</div></div>
+      </div>
+      <div class="topbar-right"><span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span></div>
+    </header>
+
+    <main class="page-content">
+      <div class="alert alert-info mb-lg">
+        <span class="material-icons">info</span>
+        <div><strong>FHIR Patient:</strong> Información demográfica y de contacto del paciente. Se relaciona con <strong>Coverage</strong> para determinar el tiempo de consulta según la organización aseguradora (EPS).</div>
+      </div>
+
+      <div class="crud-card">
+        <div class="crud-header">
+          <div><div class="crud-title">Pacientes registrados</div><div class="crud-subtitle" id="pat-count">Cargando...</div></div>
+          <div class="crud-actions">
+            <div class="search-field">
+              <span class="material-icons" style="font-size:18px;color:var(--md-sys-color-on-surface-variant)">search</span>
+              <input type="text" id="search-pat" placeholder="Buscar paciente..." oninput="filterPats()"/>
+            </div>
+            <button class="btn btn-primary" onclick="openPatModal()"><span class="material-icons">person_add</span> Nuevo Patient</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID FHIR</th><th>Cédula</th><th>Nombre completo</th><th>Género</th><th>Fecha nacimiento</th><th>Teléfono</th><th>Cobertura</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="pats-table"></tbody>
+          </table>
+        </div>
+        <div class="table-pagination">
+          <span id="pat-pagination-info">-</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal Patient -->
+<div class="modal-overlay hidden" id="pat-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">person</span><span id="pat-modal-title">Nuevo Patient</span></div>
+      <button class="close-btn" onclick="closeModal('pat-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Identificación FHIR</div>
+        <div class="form-group">
+          <label class="form-label">ID del recurso <span class="required">*</span></label>
+          <input type="text" id="pat-id" class="form-control" placeholder="pat-001" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cédula de Ciudadanía <span class="required">*</span></label>
+          <input type="text" id="pat-cc" class="form-control" placeholder="1020123456" required/>
+        </div>
+
+        <div class="form-section-title">Información Personal</div>
+        <div class="form-group">
+          <label class="form-label">Primer nombre <span class="required">*</span></label>
+          <input type="text" id="pat-given1" class="form-control" placeholder="María" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Segundo nombre</label>
+          <input type="text" id="pat-given2" class="form-control" placeholder="Fernanda"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellido <span class="required">*</span></label>
+          <input type="text" id="pat-family" class="form-control" placeholder="Rodríguez" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Género</label>
+          <select id="pat-gender" class="form-control">
+            <option value="female">Femenino</option>
+            <option value="male">Masculino</option>
+            <option value="other">Otro</option>
+            <option value="unknown">Desconocido</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha de nacimiento</label>
+          <input type="date" id="pat-birth" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="pat-active" class="form-control">
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+
+        <div class="form-section-title">Contacto</div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="tel" id="pat-phone" class="form-control" placeholder="+57 310 5678901"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input type="email" id="pat-email" class="form-control" placeholder="correo@ejemplo.co"/>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Dirección</label>
+          <input type="text" id="pat-address" class="form-control" placeholder="Calle 45 # 12-30 Apto 203"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad</label>
+          <input type="text" id="pat-city" class="form-control" placeholder="Bogotá"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('pat-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePat()"><span class="material-icons">save</span> Guardar Patient</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal View Patient -->
+<div class="modal-overlay hidden" id="view-pat-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">person</span><span id="view-pat-name">Detalle Paciente</span></div>
+      <button class="close-btn" onclick="closeModal('view-pat-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body" id="view-pat-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('view-pat-modal')">Cerrar</button>
+      <a href="appointments.html" class="btn btn-primary"><span class="material-icons">event</span> Ver Citas</a>
+    </div>
+  </div>
+</div>
+
+<!-- Modal eliminar -->
+<div class="modal-overlay hidden" id="delete-pat-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar Patient</div><button class="close-btn" onclick="closeModal('delete-pat-modal')"><span class="material-icons">close</span></button></div>
+    <div class="modal-body"><p>¿Eliminar este paciente? Esta acción es irreversible.</p><p class="text-sm text-muted mt-md">Recurso: <span class="fhir-id" id="delete-pat-id">-</span></p></div>
+    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-pat-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeletePat()"><span class="material-icons">delete</span> Eliminar</button></div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="js/fhir-client.js"></script>
+<script>
+const session = requireAuth(['admin']);
+if (session) { renderSidebarUser(session); renderPats(); if (new URLSearchParams(location.search).get('new')) openPatModal(); }
+
+let editingPatId = null, deletePatId = null;
+
+function renderPats(filter = '') {
+  const all = getResources('Patient');
+  const coverages = getResources('Coverage');
+  const filtered = filter ? all.filter(p => getPatientName(p).toLowerCase().includes(filter.toLowerCase()) || (p.identifier?.[0]?.value || '').includes(filter)) : all;
+
+  document.getElementById('pat-count').textContent = `${filtered.length} paciente(s) registrado(s)`;
+  document.getElementById('pat-pagination-info').textContent = `Mostrando ${filtered.length} de ${all.length}`;
+
+  const tbody = document.getElementById('pats-table');
+  tbody.innerHTML = '';
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">No se encontraron pacientes</td></tr>'; return; }
+
+  filtered.forEach(pat => {
+    const cc = pat.identifier?.find(i => i.system?.includes('cc'))?.value || '-';
+    const cov = coverages.find(c => c.beneficiary?.reference === `Patient/${pat.id}`);
+    const genderLabel = { female: 'Femenino', male: 'Masculino', other: 'Otro', unknown: 'Desconocido' };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="fhir-id">${pat.id}</span></td>
+      <td>${cc}</td>
+      <td><strong>${getPatientName(pat)}</strong></td>
+      <td>${genderLabel[pat.gender] || '-'}</td>
+      <td>${formatDate(pat.birthDate)}</td>
+      <td>${pat.telecom?.find(t => t.system === 'phone')?.value || '-'}</td>
+      <td>${cov ? `<span class="badge badge-active">${cov.payor?.[0]?.display || 'Sí'}</span>` : '<span class="badge badge-inactive">Sin cobertura</span>'}</td>
+      <td><span class="badge ${pat.active ? 'badge-active' : 'badge-inactive'}">${pat.active ? 'Activo' : 'Inactivo'}</span></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outlined btn-sm btn-icon" title="Ver detalle" onclick='viewPat(${JSON.stringify(pat.id)})'><span class="material-icons" style="font-size:16px">visibility</span></button>
+          <button class="btn btn-outlined btn-sm" onclick='editPat(${JSON.stringify(pat.id)})'><span class="material-icons" style="font-size:16px">edit</span> Editar</button>
+          <button class="btn btn-danger btn-sm" onclick='openDeletePat(${JSON.stringify(pat.id)})'><span class="material-icons" style="font-size:16px">delete</span></button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterPats() { renderPats(document.getElementById('search-pat').value); }
+
+function openPatModal(pat = null) {
+  editingPatId = pat?.id || null;
+  document.getElementById('pat-modal-title').textContent = pat ? 'Editar Patient' : 'Nuevo Patient';
+  document.getElementById('pat-id').value = pat?.id || '';
+  document.getElementById('pat-id').disabled = !!pat;
+  document.getElementById('pat-cc').value = pat?.identifier?.find(i => i.system?.includes('cc'))?.value || '';
+  const given = pat?.name?.[0]?.given || [];
+  document.getElementById('pat-given1').value = given[0] || '';
+  document.getElementById('pat-given2').value = given[1] || '';
+  document.getElementById('pat-family').value = pat?.name?.[0]?.family || '';
+  document.getElementById('pat-gender').value = pat?.gender || 'female';
+  document.getElementById('pat-birth').value = pat?.birthDate || '';
+  document.getElementById('pat-active').value = String(pat?.active !== false);
+  document.getElementById('pat-phone').value = pat?.telecom?.find(t => t.system === 'phone')?.value || '';
+  document.getElementById('pat-email').value = pat?.telecom?.find(t => t.system === 'email')?.value || '';
+  document.getElementById('pat-address').value = pat?.address?.[0]?.line?.[0] || '';
+  document.getElementById('pat-city').value = pat?.address?.[0]?.city || '';
+  openModal('pat-modal');
+}
+
+function editPat(id) { const p = getResource('Patient', id); if (p) openPatModal(p); }
+
+function savePat() {
+  const id = document.getElementById('pat-id').value.trim().replace(/\s+/g, '-');
+  const given1 = document.getElementById('pat-given1').value.trim();
+  const family = document.getElementById('pat-family').value.trim();
+  if (!id || !given1 || !family) { showToast('ID, nombre y apellido son obligatorios', 'error'); return; }
+
+  const given = [given1];
+  const given2 = document.getElementById('pat-given2').value.trim();
+  if (given2) given.push(given2);
+
+  const telecom = [];
+  const phone = document.getElementById('pat-phone').value.trim();
+  const email = document.getElementById('pat-email').value.trim();
+  if (phone) telecom.push({ system: 'phone', value: phone, use: 'mobile' });
+  if (email) telecom.push({ system: 'email', value: email });
+
+  const cc = document.getElementById('pat-cc').value.trim();
+  const pat = {
+    resourceType: 'Patient', id,
+    identifier: cc ? [{ use: 'official', type: { coding: [{ code: 'NI', display: 'Cédula de Ciudadanía' }], text: 'Cédula de Ciudadanía' }, system: 'urn:co:cc', value: cc }] : [],
+    active: document.getElementById('pat-active').value === 'true',
+    name: [{ use: 'official', family, given }],
+    telecom,
+    gender: document.getElementById('pat-gender').value,
+    birthDate: document.getElementById('pat-birth').value,
+    address: [{ line: [document.getElementById('pat-address').value.trim()], city: document.getElementById('pat-city').value.trim(), country: 'CO' }]
+  };
+
+  if (editingPatId) { updateResource('Patient', editingPatId, pat); showToast('Patient actualizado', 'success'); }
+  else {
+    if (getResource('Patient', id)) { showToast('Ya existe un Patient con ese ID', 'error'); return; }
+    createResource('Patient', pat);
+    showToast('Patient creado exitosamente', 'success');
+  }
+  closeModal('pat-modal');
+  renderPats();
+}
+
+function viewPat(id) {
+  const pat = getResource('Patient', id);
+  const cov = getResources('Coverage').find(c => c.beneficiary?.reference === `Patient/${id}`);
+  const apts = getResources('Appointment').filter(a => a.participant?.some(p => p.actor?.reference === `Patient/${id}`));
+
+  document.getElementById('view-pat-name').textContent = getPatientName(pat);
+  document.getElementById('view-pat-body').innerHTML = `
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">ID FHIR</label><div><span class="fhir-id">${pat.id}</span></div></div>
+      <div class="form-group"><label class="form-label">Cédula</label><div>${pat.identifier?.[0]?.value || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Nombre</label><div class="fw-600">${getPatientName(pat)}</div></div>
+      <div class="form-group"><label class="form-label">Género</label><div>${pat.gender || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Fecha de nacimiento</label><div>${formatDate(pat.birthDate)}</div></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><div>${pat.telecom?.find(t=>t.system==='phone')?.value || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Email</label><div>${pat.telecom?.find(t=>t.system==='email')?.value || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Dirección</label><div>${pat.address?.[0]?.line?.[0] || '-'}, ${pat.address?.[0]?.city || ''}</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="form-section-title" style="margin-bottom:12px">Coverage (Cobertura)</div>
+    ${cov ? `
+      <div class="alert alert-success">
+        <span class="material-icons">health_and_safety</span>
+        <div>
+          <strong>${cov.payor?.[0]?.display}</strong> · ${cov.class?.[0]?.name || cov.type?.coding?.[0]?.display || ''}<br/>
+          Vigencia: ${formatDate(cov.period?.start)} – ${formatDate(cov.period?.end)}<br/>
+          Tiempo de consulta: <strong>${cov._consultaDuracion || 20} minutos</strong>
+        </div>
+      </div>` : '<div class="alert alert-warning"><span class="material-icons">warning</span> Sin cobertura registrada. <a href="coverage.html" class="text-primary">Registrar Coverage</a></div>'}
+    <div class="divider"></div>
+    <div class="form-section-title" style="margin-bottom:12px">Citas (${apts.length})</div>
+    ${apts.length ? apts.map(a => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-sys-color-outline-variant);font-size:13px"><div><div class="fw-500">${a.serviceType?.[0]?.text || '-'}</div><div class="text-muted">${formatDateTime(a.start)}</div></div><span class="badge badge-${a.status}">${a.status}</span></div>`).join('') : '<p class="text-muted text-sm">Sin citas registradas</p>'}
+  `;
+  openModal('view-pat-modal');
+}
+
+function openDeletePat(id) { deletePatId = id; document.getElementById('delete-pat-id').textContent = id; openModal('delete-pat-modal'); }
+function confirmDeletePat() { deleteResource('Patient', deletePatId); showToast('Patient eliminado', 'warning'); closeModal('delete-pat-modal'); renderPats(); }
+</script>
+</body>
+</html>

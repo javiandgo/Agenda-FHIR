@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - ACME Salud FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="material-icons brand-icon">local_hospital</span>
+      <div>
+        <div class="brand-name">ACME Salud</div>
+        <div class="brand-sub">Sistema FHIR R4</div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar"><span class="material-icons">person</span></div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-user-name">Cargando...</div>
+        <span class="user-role" id="sidebar-user-role">Admin</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a class="nav-item active" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
+      <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment) <span class="nav-badge" id="badge-apt">0</span></a>
+
+      <div class="nav-section-title">Recursos FHIR</div>
+      <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
+      <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
+      <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+
+      <div class="nav-section-title">Portal</div>
+      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" data-logout>
+        <span class="material-icons">logout</span> Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="sidebar-toggle"><span class="material-icons">menu</span></button>
+        <div>
+          <div class="topbar-title">Dashboard Administrativo</div>
+          <div class="breadcrumb">Vista general del sistema FHIR</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span>
+        <button class="icon-btn" title="Actualizar" onclick="loadDashboard()"><span class="material-icons">refresh</span></button>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Flujo FHIR -->
+      <div class="fhir-flow mb-lg">
+        <span class="material-icons" style="font-size:18px;color:var(--md-sys-color-on-primary-container)">info</span>
+        <span style="font-size:12px;color:var(--md-sys-color-on-primary-container);font-weight:500">Flujo FHIR:</span>
+        <span class="fhir-resource-chip">Organization</span>
+        <span class="fhir-flow-arrow material-icons">arrow_forward</span>
+        <span class="fhir-resource-chip">Patient + Coverage</span>
+        <span class="fhir-flow-arrow material-icons">arrow_forward</span>
+        <span class="fhir-resource-chip">Practitioner / PractitionerRole</span>
+        <span class="fhir-flow-arrow material-icons">arrow_forward</span>
+        <span class="fhir-resource-chip">Schedule + Slot</span>
+        <span class="fhir-flow-arrow material-icons">arrow_forward</span>
+        <span class="fhir-resource-chip">Appointment</span>
+        <span class="fhir-flow-arrow material-icons">arrow_forward</span>
+        <span class="fhir-resource-chip">AppointmentResponse</span>
+      </div>
+
+      <!-- Estadísticas -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-icon blue"><span class="material-icons">business</span></div><div class="stat-info"><div class="stat-value" id="stat-orgs">-</div><div class="stat-label">Organizations</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><span class="material-icons">people</span></div><div class="stat-info"><div class="stat-value" id="stat-pats">-</div><div class="stat-label">Patients</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple"><span class="material-icons">medical_services</span></div><div class="stat-info"><div class="stat-value" id="stat-pracs">-</div><div class="stat-label">Practitioners</div></div></div>
+        <div class="stat-card"><div class="stat-icon teal"><span class="material-icons">calendar_month</span></div><div class="stat-info"><div class="stat-value" id="stat-scheds">-</div><div class="stat-label">Schedules</div></div></div>
+        <div class="stat-card"><div class="stat-icon orange"><span class="material-icons">event_available</span></div><div class="stat-info"><div class="stat-value" id="stat-slots">-</div><div class="stat-label">Slots libres</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue"><span class="material-icons">event</span></div><div class="stat-info"><div class="stat-value" id="stat-apts">-</div><div class="stat-label">Appointments</div></div></div>
+      </div>
+
+      <!-- Citas recientes + accesos rápidos -->
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start" class="dashboard-grid">
+
+        <!-- Citas recientes -->
+        <div class="crud-card">
+          <div class="crud-header">
+            <div>
+              <div class="crud-title">Citas Recientes</div>
+              <div class="crud-subtitle">Últimas citas registradas en el sistema</div>
+            </div>
+            <a href="appointments.html" class="btn btn-outlined btn-sm">Ver todas <span class="material-icons" style="font-size:16px">open_in_new</span></a>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID FHIR</th>
+                  <th>Paciente</th>
+                  <th>Servicio</th>
+                  <th>Fecha/Hora</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="appointments-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Accesos rápidos -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="crud-card p-md">
+            <div class="crud-title mb-md" style="font-size:16px">Acciones rápidas</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <a href="appointments.html?new=1" class="btn btn-primary w-full" style="justify-content:flex-start">
+                <span class="material-icons">add_circle</span> Nueva Cita
+              </a>
+              <a href="patients.html?new=1" class="btn btn-secondary w-full" style="justify-content:flex-start">
+                <span class="material-icons">person_add</span> Registrar Paciente
+              </a>
+              <a href="schedules.html?new=1" class="btn btn-outlined w-full" style="justify-content:flex-start">
+                <span class="material-icons">calendar_month</span> Crear Agenda
+              </a>
+              <a href="organizations.html?new=1" class="btn btn-outlined w-full" style="justify-content:flex-start">
+                <span class="material-icons">add_business</span> Nueva Organización
+              </a>
+            </div>
+          </div>
+
+          <!-- Slots disponibles -->
+          <div class="crud-card p-md">
+            <div class="crud-title mb-md" style="font-size:16px">Próximos Slots libres</div>
+            <div id="free-slots-list"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/fhir-client.js"></script>
+<script>
+const session = requireAuth(['admin']);
+if (session) {
+  renderSidebarUser(session);
+  loadDashboard();
+}
+
+function loadDashboard() {
+  const orgs  = getResources('Organization');
+  const pats  = getResources('Patient');
+  const pracs = getResources('Practitioner');
+  const scheds = getResources('Schedule');
+  const slots  = getResources('Slot');
+  const apts   = getResources('Appointment');
+
+  document.getElementById('stat-orgs').textContent  = orgs.length;
+  document.getElementById('stat-pats').textContent  = pats.length;
+  document.getElementById('stat-pracs').textContent = pracs.length;
+  document.getElementById('stat-scheds').textContent = scheds.length;
+  document.getElementById('stat-slots').textContent  = slots.filter(s => s.status === 'free').length;
+  document.getElementById('stat-apts').textContent   = apts.length;
+
+  const badge = document.getElementById('badge-apt');
+  if (badge) badge.textContent = apts.length;
+
+  // Tabla citas
+  const tbody = document.getElementById('appointments-table');
+  tbody.innerHTML = '';
+  [...apts].reverse().slice(0, 8).forEach(apt => {
+    const patient = apt.participant?.find(p => p.actor?.reference?.startsWith('Patient/'));
+    const service = apt.serviceType?.[0]?.text || apt.serviceType?.[0]?.coding?.[0]?.display || '-';
+    const statusBadge = {
+      booked: 'badge-booked', pending: 'badge-pending',
+      cancelled: 'badge-cancelled', fulfilled: 'badge-fulfilled'
+    };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="fhir-id">${apt.id}</span></td>
+      <td class="fw-500">${patient?.actor?.display || '-'}</td>
+      <td>${service}</td>
+      <td class="text-sm">${formatDateTime(apt.start)}</td>
+      <td><span class="badge ${statusBadge[apt.status] || 'badge-inactive'}">${apt.status}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (!apts.length) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--md-sys-color-on-surface-variant);padding:32px">Sin citas registradas</td></tr>';
+
+  // Slots libres
+  const freeSlots = slots.filter(s => s.status === 'free').slice(0, 5);
+  const freeSlotsEl = document.getElementById('free-slots-list');
+  freeSlotsEl.innerHTML = freeSlots.length
+    ? freeSlots.map(sl => {
+        const sched = getResource('Schedule', sl.schedule?.reference?.replace('Schedule/', ''));
+        const actor = sched?.actor?.[0]?.display || 'Médico';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--md-sys-color-outline-variant);font-size:13px">
+          <div><div class="fw-500">${actor}</div><div class="text-muted text-xs">${formatDateTime(sl.start)}</div></div>
+          <span class="badge badge-active">Libre</span>
+        </div>`;
+      }).join('')
+    : '<p class="text-muted text-sm">No hay slots disponibles</p>';
+}
+</script>
+</body>
+</html>

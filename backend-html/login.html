@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Acceso - ACME Salud Sistema FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo"><span class="material-icons" style="font-size:64px">local_hospital</span></div>
+      <div class="login-title">ACME Salud</div>
+      <div class="login-sub">Sistema de Agendas FHIR R4</div>
+      <div style="margin-top:12px">
+        <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> HL7 FHIR R4</span>
+      </div>
+    </div>
+
+    <div class="login-body">
+      <p style="font-size:13px;color:var(--md-sys-color-on-surface-variant);margin-bottom:16px;text-align:center">
+        Selecciona tu tipo de acceso e ingresa tus credenciales
+      </p>
+
+      <!-- Selector de rol -->
+      <div class="role-selector" id="role-selector">
+        <div class="role-card selected" data-role="admin" onclick="selectRole('admin', this)">
+          <span class="material-icons role-icon">admin_panel_settings</span>
+          <div class="role-name">Administrador</div>
+          <div class="role-desc">Gestión completa FHIR</div>
+        </div>
+        <div class="role-card" data-role="patient" onclick="selectRole('patient', this)">
+          <span class="material-icons role-icon">person</span>
+          <div class="role-name">Paciente</div>
+          <div class="role-desc">Mis citas y perfil</div>
+        </div>
+      </div>
+
+      <!-- Demo credentials hint -->
+      <div class="alert alert-info" id="demo-hint" style="font-size:12px;margin-bottom:16px">
+        <span class="material-icons" style="font-size:16px">info</span>
+        <div>
+          <strong>Demo Admin:</strong> admin@acmesalud.co / admin123<br/>
+          <strong>Demo Paciente:</strong> paciente@acmesalud.co / paciente123
+        </div>
+      </div>
+
+      <!-- Formulario -->
+      <form id="login-form" onsubmit="doLogin(event)">
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Correo electrónico</label>
+          <input type="email" id="login-email" class="form-control" placeholder="correo@ejemplo.co"
+                 value="admin@acmesalud.co" autocomplete="username" required/>
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+          <label class="form-label">Contraseña</label>
+          <div style="position:relative">
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••"
+                   value="admin123" autocomplete="current-password" required style="padding-right:44px"/>
+            <button type="button" onclick="togglePwd()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--md-sys-color-on-surface-variant)">
+              <span class="material-icons" id="pwd-icon">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="alert alert-error hidden" id="login-error" style="margin-bottom:16px">
+          <span class="material-icons" style="font-size:16px">error</span>
+          <span>Credenciales incorrectas. Verifica tu correo y contraseña.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:12px">
+          <span class="material-icons">login</span>
+          Ingresar al sistema
+        </button>
+      </form>
+
+      <div class="divider"></div>
+      <div style="text-align:center">
+        <a href="../frontend-html/index.html" style="font-size:13px;color:var(--md-sys-color-primary);display:inline-flex;align-items:center;gap:4px">
+          <span class="material-icons" style="font-size:16px">arrow_back</span> Ir al portal del paciente
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/fhir-client.js"></script>
+<script>
+  let selectedRole = 'admin';
+
+  // Redirigir si ya hay sesión
+  (function() {
+    const s = getSession();
+    if (s) window.location.href = s.role === 'patient' ? 'patient-dashboard.html' : 'index.html';
+  })();
+
+  function selectRole(role, el) {
+    selectedRole = role;
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    const hints = { admin: 'admin@acmesalud.co / admin123', patient: 'paciente@acmesalud.co / paciente123' };
+    document.getElementById('login-email').value = role === 'admin' ? 'admin@acmesalud.co' : 'paciente@acmesalud.co';
+    document.getElementById('login-password').value = role === 'admin' ? 'admin123' : 'paciente123';
+  }
+
+  function togglePwd() {
+    const pwd = document.getElementById('login-password');
+    const icon = document.getElementById('pwd-icon');
+    if (pwd.type === 'password') { pwd.type = 'text'; icon.textContent = 'visibility_off'; }
+    else { pwd.type = 'password'; icon.textContent = 'visibility'; }
+  }
+
+  function doLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.classList.add('hidden');
+
+    const session = login(email, password, selectedRole);
+    if (!session) {
+      errEl.classList.remove('hidden');
+      return;
+    }
+    window.location.href = session.role === 'patient' ? 'patient-dashboard.html' : 'index.html';
+  }
+</script>
+</body>
+</html>

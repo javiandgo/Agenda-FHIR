@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Appointments - ACME Salud FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <style>
+    .status-flow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: #f8f9fc;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .status-node {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 2px solid;
+    }
+    .status-node.proposed  { background: #ede7f6; color: #4527a0; border-color: #7e57c2; }
+    .status-node.pending   { background: #fff8e1; color: #f57f17; border-color: #ffa000; }
+    .status-node.booked    { background: #e3f2fd; color: #1565c0; border-color: #1976d2; }
+    .status-node.fulfilled { background: #e8f5e9; color: #2e7d32; border-color: #388e3c; }
+    .status-node.cancelled { background: #fce4ec; color: #c62828; border-color: #e53935; }
+    .status-node.noshow    { background: #eceff1; color: #546e7a; border-color: #78909c; }
+    .status-arrow { color: #9e9e9e; font-size: 18px; }
+
+    .cancel-reason-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .reason-option {
+      border: 2px solid var(--md-sys-color-outline-variant);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .reason-option:hover { border-color: var(--md-sys-color-error); background: var(--md-sys-color-error-container); }
+    .reason-option.selected { border-color: var(--md-sys-color-error); background: var(--md-sys-color-error-container); }
+    .reason-option .material-icons { color: var(--md-sys-color-error); font-size: 20px; }
+
+    .appointment-response-card {
+      background: linear-gradient(135deg, var(--md-sys-color-primary-container) 0%, var(--md-sys-color-secondary-container) 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 20px;
+    }
+    .response-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .response-icon { width: 48px; height: 48px; background: var(--md-sys-color-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .response-icon .material-icons { color: #fff; font-size: 24px; }
+    .response-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .response-detail { background: rgba(255,255,255,.6); border-radius: 10px; padding: 10px 14px; }
+    .response-detail .rd-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--md-sys-color-on-surface-variant); }
+    .response-detail .rd-value { font-size: 14px; font-weight: 600; margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><span class="material-icons brand-icon">local_hospital</span><div><div class="brand-name">ACME Salud</div><div class="brand-sub">Sistema FHIR R4</div></div></div>
+    <div class="sidebar-user"><div class="user-avatar"><span class="material-icons">person</span></div><div class="user-info"><div class="user-name" id="sidebar-user-name">-</div><span class="user-role" id="sidebar-user-role">Admin</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a class="nav-item" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
+      <a class="nav-item active" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
+      <div class="nav-section-title">Recursos FHIR</div>
+      <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
+      <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
+      <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <div class="nav-section-title">Portal</div>
+      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="sidebar-toggle"><span class="material-icons">menu</span></button>
+        <div><div class="topbar-title">Appointment &amp; AppointmentResponse</div><div class="breadcrumb">FHIR Resources · Gestión de citas médicas</div></div>
+      </div>
+      <div class="topbar-right">
+        <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span>
+        <button class="btn btn-primary" onclick="openAptModal()"><span class="material-icons">add</span> Nueva Cita</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Flujo de estados FHIR -->
+      <div class="status-flow mb-lg">
+        <span style="font-size:12px;font-weight:600;color:var(--md-sys-color-on-surface-variant)">Estado Appointment.status:</span>
+        <div class="status-node proposed"><span class="material-icons" style="font-size:14px">pending</span> proposed</div>
+        <span class="status-arrow material-icons">arrow_forward</span>
+        <div class="status-node pending"><span class="material-icons" style="font-size:14px">hourglass_empty</span> pending</div>
+        <span class="status-arrow material-icons">arrow_forward</span>
+        <div class="status-node booked"><span class="material-icons" style="font-size:14px">event_available</span> booked</div>
+        <span class="status-arrow material-icons">arrow_forward</span>
+        <div class="status-node fulfilled"><span class="material-icons" style="font-size:14px">check_circle</span> fulfilled</div>
+        <span style="margin:0 8px;color:#9e9e9e;font-size:12px">|</span>
+        <div class="status-node cancelled"><span class="material-icons" style="font-size:14px">cancel</span> cancelled</div>
+        <span class="status-arrow material-icons">arrow_forward</span>
+        <div class="status-node noshow"><span class="material-icons" style="font-size:14px">person_off</span> noshow</div>
+      </div>
+
+      <!-- Filtros y estadísticas rápidas -->
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px" id="apt-stats"></div>
+
+      <!-- Tabla principal -->
+      <div class="crud-card">
+        <div class="crud-header">
+          <div><div class="crud-title">Citas registradas</div><div class="crud-subtitle" id="apt-count">Cargando...</div></div>
+          <div class="crud-actions">
+            <div class="search-field">
+              <span class="material-icons" style="font-size:18px;color:var(--md-sys-color-on-surface-variant)">search</span>
+              <input type="text" id="search-apt" placeholder="Buscar paciente o servicio..." oninput="filterApts()"/>
+            </div>
+            <div class="search-field">
+              <span class="material-icons" style="font-size:18px;color:var(--md-sys-color-on-surface-variant)">filter_list</span>
+              <select id="filter-status" onchange="filterApts()" style="border:none;background:none;outline:none;font-size:14px;cursor:pointer;min-width:130px">
+                <option value="">Todos los estados</option>
+                <option value="proposed">proposed</option>
+                <option value="pending">pending</option>
+                <option value="booked">booked</option>
+                <option value="fulfilled">fulfilled</option>
+                <option value="cancelled">cancelled</option>
+                <option value="noshow">noshow</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID FHIR</th><th>N° Cita</th><th>Paciente</th><th>Servicio / Especialidad</th><th>Médico</th><th>Fecha y Hora</th><th>Estado</th><th>Tipo</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="apts-table"></tbody>
+          </table>
+        </div>
+        <div class="table-pagination"><span id="apt-pagination-info">-</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ==========================================
+     Modal: Nueva / Editar Appointment
+     ========================================== -->
+<div class="modal-overlay hidden" id="apt-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">event</span><span id="apt-modal-title">Nueva Cita (Appointment)</span></div>
+      <button class="close-btn" onclick="closeModal('apt-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Identificación FHIR</div>
+        <div class="form-group">
+          <label class="form-label">ID del recurso <span class="required">*</span></label>
+          <input type="text" id="apt-id" class="form-control" placeholder="apt-001" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° de cita (identifier)</label>
+          <input type="text" id="apt-identifier" class="form-control" placeholder="APT-2026-001234"/>
+        </div>
+
+        <div class="form-section-title">Tipo y Servicio</div>
+        <div class="form-group">
+          <label class="form-label">Tipo de cita</label>
+          <select id="apt-type" class="form-control">
+            <option value="ROUTINE|Primera vez">Primera vez</option>
+            <option value="FOLLOWUP|Control">Control / Seguimiento</option>
+            <option value="EMERGENCY|Urgencia">Urgencia</option>
+            <option value="CHECKUP|Chequeo">Chequeo de rutina</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Especialidad / Servicio <span class="required">*</span></label>
+          <select id="apt-service" class="form-control" required onchange="loadPractitionersByService()">
+            <option value="394814009|Medicina General">Medicina General</option>
+            <option value="394537008|Pediatría">Pediatría</option>
+            <option value="394802001|Cardiología">Cardiología</option>
+            <option value="394583002|Dermatología">Dermatología</option>
+            <option value="394585009|Ob/Ginecología">Ob/Ginecología</option>
+            <option value="394589003|Neurología">Neurología</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Motivo de la consulta</label>
+          <input type="text" id="apt-reason" class="form-control" placeholder="Descripción del motivo de la cita"/>
+        </div>
+
+        <div class="form-section-title">Participantes</div>
+        <div class="form-group">
+          <label class="form-label">Paciente <span class="required">*</span></label>
+          <select id="apt-patient" class="form-control" required onchange="loadCoverage()"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Médico (Practitioner) <span class="required">*</span></label>
+          <select id="apt-practitioner" class="form-control" required></select>
+        </div>
+
+        <div class="form-section-title">Cobertura detectada</div>
+        <div class="form-group full-width" id="coverage-info-box">
+          <div class="alert alert-warning"><span class="material-icons">info</span> Selecciona un paciente para ver su cobertura y el tiempo de consulta.</div>
+        </div>
+
+        <div class="form-section-title">Slot y Fecha/Hora</div>
+        <div class="form-group">
+          <label class="form-label">Slot asignado</label>
+          <select id="apt-slot" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Inicio de la cita <span class="required">*</span></label>
+          <input type="datetime-local" id="apt-start" class="form-control" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fin de la cita <span class="required">*</span></label>
+          <input type="datetime-local" id="apt-end" class="form-control" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="apt-status" class="form-control">
+            <option value="proposed">proposed</option>
+            <option value="pending">pending</option>
+            <option value="booked" selected>booked</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Comentarios / instrucciones</label>
+          <textarea id="apt-comment" class="form-control" placeholder="Favor llegar 10 minutos antes con documentos" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('apt-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveApt()"><span class="material-icons">event_available</span> Registrar Cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     Modal: Ver Appointment + AppointmentResponse
+     ========================================== -->
+<div class="modal-overlay hidden" id="view-apt-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">event</span><span id="view-apt-title">Detalle de Cita</span></div>
+      <button class="close-btn" onclick="closeModal('view-apt-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body" id="view-apt-body"></div>
+    <div class="modal-footer" id="view-apt-footer"></div>
+  </div>
+</div>
+
+<!-- ==========================================
+     Modal: Cancelar Appointment
+     ========================================== -->
+<div class="modal-overlay hidden" id="cancel-apt-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--md-sys-color-error)">
+        <span class="material-icons">cancel</span> Cancelar Cita (Appointment)
+      </div>
+      <button class="close-btn" onclick="closeModal('cancel-apt-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning mb-lg">
+        <span class="material-icons">warning</span>
+        <div>Al cancelar la cita, <strong>Appointment.status</strong> cambiará a <code>cancelled</code> y se registrará el <strong>Appointment.cancelationReason</strong> según FHIR R4.</div>
+      </div>
+
+      <p class="fw-500 mb-md">Cita: <span class="fhir-id" id="cancel-apt-id">-</span></p>
+      <p class="text-sm text-muted mb-md" id="cancel-apt-desc">-</p>
+
+      <label class="form-label mb-md">Selecciona el motivo de cancelación <span class="required">*</span></label>
+      <div class="cancel-reason-list" id="cancel-reasons">
+        <div class="reason-option" data-code="pat" data-display="Paciente" onclick="selectReason(this)">
+          <span class="material-icons">person_off</span>
+          <div><div class="fw-500">Por el paciente</div><div class="text-xs text-muted">El paciente no puede asistir</div></div>
+        </div>
+        <div class="reason-option" data-code="prov" data-display="Proveedor/Médico" onclick="selectReason(this)">
+          <span class="material-icons">medical_services</span>
+          <div><div class="fw-500">Por el médico/servicio</div><div class="text-xs text-muted">El profesional no puede atender</div></div>
+        </div>
+        <div class="reason-option" data-code="maint" data-display="Mantenimiento" onclick="selectReason(this)">
+          <span class="material-icons">build</span>
+          <div><div class="fw-500">Mantenimiento del equipo</div><div class="text-xs text-muted">El equipo médico requiere mantenimiento</div></div>
+        </div>
+        <div class="reason-option" data-code="oth-cms" data-display="Otro (sistema)" onclick="selectReason(this)">
+          <span class="material-icons">info</span>
+          <div><div class="fw-500">Otro motivo del sistema</div><div class="text-xs text-muted">Razón administrativa o de sistema</div></div>
+        </div>
+      </div>
+
+      <div class="form-group mt-md">
+        <label class="form-label">Detalle del motivo (Appointment.cancelationReason.text) <span class="required">*</span></label>
+        <textarea id="cancel-reason-text" class="form-control" rows="3" placeholder="Describe detalladamente el motivo de cancelación..." required></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('cancel-apt-modal')">Volver</button>
+      <button class="btn btn-danger" onclick="confirmCancel()">
+        <span class="material-icons">cancel</span> Confirmar cancelación
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal eliminar -->
+<div class="modal-overlay hidden" id="delete-apt-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar Appointment</div><button class="close-btn" onclick="closeModal('delete-apt-modal')"><span class="material-icons">close</span></button></div>
+    <div class="modal-body"><p>¿Eliminar permanentemente esta cita del sistema FHIR?</p><p class="text-sm text-muted mt-md">ID: <span class="fhir-id" id="delete-apt-id">-</span></p></div>
+    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-apt-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeleteApt()"><span class="material-icons">delete</span> Eliminar</button></div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="js/fhir-client.js"></script>
+<script>
+const session = requireAuth(['admin']);
+if (session) {
+  renderSidebarUser(session);
+  renderApts();
+  renderAptStats();
+  if (new URLSearchParams(location.search).get('new')) openAptModal();
+}
+
+let editingAptId = null, cancelAptId = null, deleteAptId = null, selectedCancelCode = null, selectedCancelDisplay = null;
+
+// ==========================================
+// Estadísticas
+// ==========================================
+function renderAptStats() {
+  const apts = getResources('Appointment');
+  const stats = [
+    { label: 'Total', icon: 'event', color: 'blue', count: apts.length },
+    { label: 'Booked', icon: 'event_available', color: 'blue', count: apts.filter(a => a.status === 'booked').length },
+    { label: 'Pending', icon: 'hourglass_empty', color: 'orange', count: apts.filter(a => a.status === 'pending').length },
+    { label: 'Fulfilled', icon: 'check_circle', color: 'green', count: apts.filter(a => a.status === 'fulfilled').length },
+    { label: 'Cancelled', icon: 'cancel', color: 'red', count: apts.filter(a => a.status === 'cancelled').length },
+  ];
+  document.getElementById('apt-stats').innerHTML = stats.map(s =>
+    `<div class="stat-card"><div class="stat-icon ${s.color}"><span class="material-icons">${s.icon}</span></div><div class="stat-info"><div class="stat-value">${s.count}</div><div class="stat-label">${s.label}</div></div></div>`
+  ).join('');
+}
+
+// ==========================================
+// Tabla de citas
+// ==========================================
+function renderApts(filter = '', statusFilter = '') {
+  const all = getResources('Appointment');
+  let filtered = all;
+  if (filter) {
+    filtered = filtered.filter(a => {
+      const patient = a.participant?.find(p => p.actor?.reference?.startsWith('Patient/'))?.actor?.display || '';
+      const service = a.serviceType?.[0]?.text || a.serviceType?.[0]?.coding?.[0]?.display || '';
+      return (patient + service).toLowerCase().includes(filter.toLowerCase());
+    });
+  }
+  if (statusFilter) filtered = filtered.filter(a => a.status === statusFilter);
+
+  document.getElementById('apt-count').textContent = `${filtered.length} cita(s) registrada(s)`;
+  document.getElementById('apt-pagination-info').textContent = `Mostrando ${filtered.length} de ${all.length}`;
+
+  const statusBadge = { booked: 'badge-booked', pending: 'badge-pending', cancelled: 'badge-cancelled', fulfilled: 'badge-fulfilled', proposed: 'badge-proposed', noshow: 'badge-inactive' };
+  const tbody = document.getElementById('apts-table');
+  tbody.innerHTML = '';
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--md-sys-color-on-surface-variant)">No se encontraron citas</td></tr>'; return; }
+
+  [...filtered].sort((a, b) => new Date(b.start || 0) - new Date(a.start || 0)).forEach(apt => {
+    const patient = apt.participant?.find(p => p.actor?.reference?.startsWith('Patient/'));
+    const practitioner = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'));
+    const service = apt.serviceType?.[0]?.text || apt.serviceType?.[0]?.coding?.[0]?.display || '-';
+    const isCancelled = apt.status === 'cancelled';
+    const isFulfilled = apt.status === 'fulfilled';
+    const canCancel = !isCancelled && !isFulfilled;
+    const tr = document.createElement('tr');
+    tr.style.opacity = isCancelled ? '0.7' : '1';
+    tr.innerHTML = `
+      <td><span class="fhir-id">${apt.id}</span></td>
+      <td class="text-xs text-muted">${apt.identifier?.[0]?.value || '-'}</td>
+      <td><strong>${patient?.actor?.display || '-'}</strong></td>
+      <td>${service}</td>
+      <td>${practitioner?.actor?.display || '-'}</td>
+      <td class="fw-500 text-sm">${formatDateTime(apt.start)}<br><span class="text-xs text-muted">${formatDateTime(apt.end)}</span></td>
+      <td>
+        <span class="badge ${statusBadge[apt.status] || 'badge-inactive'}">${apt.status}</span>
+        ${isCancelled && apt.cancelationReason ? `<div class="text-xs text-muted mt-md" style="margin-top:4px" title="${apt.cancelationReason.text || ''}"><span class="material-icons" style="font-size:12px">info</span> ${apt.cancelationReason.coding?.[0]?.display || ''}</div>` : ''}
+      </td>
+      <td class="text-sm">${apt.appointmentType?.coding?.[0]?.display || '-'}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-outlined btn-sm" onclick='viewApt(${JSON.stringify(apt.id)})'><span class="material-icons" style="font-size:16px">visibility</span></button>
+          ${canCancel ? `<button class="btn btn-outlined btn-sm" onclick='editApt(${JSON.stringify(apt.id)})'><span class="material-icons" style="font-size:16px">edit</span></button>` : ''}
+          ${canCancel ? `<button class="btn btn-danger btn-sm" onclick='openCancelModal(${JSON.stringify(apt.id)})'><span class="material-icons" style="font-size:16px">cancel</span> Cancelar</button>` : ''}
+          <button class="btn btn-danger btn-sm btn-icon" title="Eliminar" onclick='openDeleteApt(${JSON.stringify(apt.id)})'><span class="material-icons" style="font-size:16px">delete</span></button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterApts() {
+  renderApts(document.getElementById('search-apt').value, document.getElementById('filter-status').value);
+}
+
+// ==========================================
+// Abrir modal nueva/editar cita
+// ==========================================
+function openAptModal(apt = null) {
+  editingAptId = apt?.id || null;
+  const patients = getResources('Patient');
+  const pracs = getResources('Practitioner');
+  const slots = getResources('Slot').filter(s => s.status === 'free');
+
+  document.getElementById('apt-modal-title').textContent = apt ? 'Editar Cita' : 'Nueva Cita (Appointment)';
+  document.getElementById('apt-id').value = apt?.id || '';
+  document.getElementById('apt-id').disabled = !!apt;
+  document.getElementById('apt-identifier').value = apt?.identifier?.[0]?.value || `APT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+  document.getElementById('apt-type').value = apt?.appointmentType ? `${apt.appointmentType.coding[0].code}|${apt.appointmentType.coding[0].display}` : 'ROUTINE|Primera vez';
+  document.getElementById('apt-reason').value = apt?.reasonCode?.[0]?.text || '';
+  document.getElementById('apt-comment').value = apt?.comment || '';
+  document.getElementById('apt-status').value = apt?.status || 'booked';
+
+  document.getElementById('apt-patient').innerHTML = patients.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+  document.getElementById('apt-practitioner').innerHTML = pracs.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+  document.getElementById('apt-slot').innerHTML = '<option value="">Sin slot asignado</option>' + slots.map(s => {
+    const sched = getResource('Schedule', s.schedule?.reference?.replace('Schedule/', ''));
+    return `<option value="${s.id}">${formatDateTime(s.start)} – ${sched?.actor?.[0]?.display || s.schedule?.reference}</option>`;
+  }).join('');
+
+  if (apt) {
+    const patRef = apt.participant?.find(p => p.actor?.reference?.startsWith('Patient/'))?.actor?.reference?.replace('Patient/', '');
+    const pracRef = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'))?.actor?.reference?.replace('Practitioner/', '');
+    if (patRef) document.getElementById('apt-patient').value = patRef;
+    if (pracRef) document.getElementById('apt-practitioner').value = pracRef;
+    document.getElementById('apt-slot').value = apt.slot?.[0]?.reference?.replace('Slot/', '') || '';
+    document.getElementById('apt-start').value = apt.start ? apt.start.substring(0, 16) : '';
+    document.getElementById('apt-end').value = apt.end ? apt.end.substring(0, 16) : '';
+    const svc = apt.serviceType?.[0]?.coding?.[0];
+    if (svc) document.getElementById('apt-service').value = `${svc.code}|${svc.text || svc.display}`;
+    loadCoverage();
+  }
+  openModal('apt-modal');
+}
+
+function loadCoverage() {
+  const patId = document.getElementById('apt-patient').value;
+  const cov = getResources('Coverage').find(c => c.beneficiary?.reference === `Patient/${patId}`);
+  const box = document.getElementById('coverage-info-box');
+  if (cov) {
+    const dur = cov._consultaDuracion || 20;
+    box.innerHTML = `<div class="alert alert-success"><span class="material-icons">health_and_safety</span>
+      <div><strong>${cov.payor?.[0]?.display}</strong> · ${cov.class?.[0]?.name || cov.type?.coding?.[0]?.display || ''}<br/>
+      Tiempo de consulta según convenio: <strong>${dur} minutos</strong><br/>
+      Vigencia: ${formatDate(cov.period?.start)} – ${formatDate(cov.period?.end)}
+      </div></div>`;
+  } else {
+    box.innerHTML = `<div class="alert alert-warning"><span class="material-icons">warning</span> Este paciente no tiene cobertura registrada. <a href="coverage.html" class="text-primary">Registrar Coverage</a></div>`;
+  }
+}
+
+function loadPractitionersByService() {}
+
+function saveApt() {
+  const id = document.getElementById('apt-id').value.trim().replace(/\s+/g, '-');
+  const patId = document.getElementById('apt-patient').value;
+  const pracId = document.getElementById('apt-practitioner').value;
+  const start = document.getElementById('apt-start').value;
+  const end = document.getElementById('apt-end').value;
+  if (!id || !patId || !pracId || !start || !end) { showToast('ID, paciente, médico, inicio y fin son obligatorios', 'error'); return; }
+
+  const pat = getResource('Patient', patId);
+  const prac = getResource('Practitioner', pracId);
+  const slotId = document.getElementById('apt-slot').value;
+  const svcVal = document.getElementById('apt-service').value.split('|');
+  const typeVal = document.getElementById('apt-type').value.split('|');
+
+  const apt = {
+    resourceType: 'Appointment', id,
+    identifier: [{ system: 'urn:co:acme:appointment', value: document.getElementById('apt-identifier').value.trim() }],
+    status: document.getElementById('apt-status').value,
+    serviceType: [{ coding: [{ system: 'http://snomed.info/sct', code: svcVal[0], display: svcVal[1] }], text: svcVal[1] }],
+    specialty: [{ coding: [{ system: 'http://snomed.info/sct', code: svcVal[0], display: svcVal[1] }] }],
+    appointmentType: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0276', code: typeVal[0], display: typeVal[1] }], text: typeVal[1] },
+    reasonCode: [{ text: document.getElementById('apt-reason').value.trim() }],
+    slot: slotId ? [{ reference: `Slot/${slotId}` }] : [],
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
+    created: new Date().toISOString(),
+    comment: document.getElementById('apt-comment').value.trim(),
+    participant: [
+      { actor: { reference: `Patient/${patId}`, display: getPatientName(pat) }, status: 'accepted', required: 'required' },
+      { actor: { reference: `Practitioner/${pracId}`, display: getPatientName(prac) }, status: 'accepted', required: 'required' }
+    ]
+  };
+
+  if (editingAptId) {
+    updateResource('Appointment', editingAptId, apt);
+    showToast('Appointment actualizado', 'success');
+  } else {
+    if (getResource('Appointment', id)) { showToast('Ya existe un Appointment con ese ID', 'error'); return; }
+    createResource('Appointment', apt);
+    // Marcar slot como busy
+    if (slotId) { const slot = getResource('Slot', slotId); if (slot) { slot.status = 'busy'; updateResource('Slot', slotId, slot); } }
+    // Generar AppointmentResponse automáticamente
+    generateAppointmentResponse(apt, pat, prac);
+    showToast('Cita agendada exitosamente. AppointmentResponse generada.', 'success');
+  }
+  closeModal('apt-modal');
+  renderApts();
+  renderAptStats();
+}
+
+function generateAppointmentResponse(apt, pat, prac) {
+  const apr = {
+    resourceType: 'AppointmentResponse',
+    id: `apr-${apt.id}`,
+    appointment: { reference: `Appointment/${apt.id}` },
+    start: apt.start,
+    end: apt.end,
+    participantType: [{ coding: [{ code: 'patient', display: 'Paciente' }] }],
+    actor: { reference: `Patient/${pat.id}`, display: getPatientName(pat) },
+    participantStatus: 'accepted',
+    comment: `Cita confirmada. Servicio: ${apt.serviceType?.[0]?.text}. Médico: ${getPatientName(prac)}. ${apt.comment || 'Por favor llegar 10 minutos antes con documentos y tarjeta de aseguradora.'}`
+  };
+  createResource('AppointmentResponse', apr);
+}
+
+// ==========================================
+// Ver detalle de Appointment + Response
+// ==========================================
+function viewApt(id) {
+  const apt = getResource('Appointment', id);
+  const response = getResources('AppointmentResponse').find(r => r.appointment?.reference === `Appointment/${id}`);
+  const patient = apt.participant?.find(p => p.actor?.reference?.startsWith('Patient/'));
+  const practitioner = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'));
+  const statusBadge = { booked: 'badge-booked', pending: 'badge-pending', cancelled: 'badge-cancelled', fulfilled: 'badge-fulfilled', proposed: 'badge-proposed', noshow: 'badge-inactive' };
+
+  document.getElementById('view-apt-title').textContent = `Cita ${apt.identifier?.[0]?.value || apt.id}`;
+
+  const isCancelled = apt.status === 'cancelled';
+  const canCancel = !isCancelled && apt.status !== 'fulfilled';
+
+  document.getElementById('view-apt-body').innerHTML = `
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <span class="badge ${statusBadge[apt.status] || 'badge-inactive'}" style="font-size:14px;padding:6px 16px">${apt.status.toUpperCase()}</span>
+      <span class="fhir-id">${apt.id}</span>
+      ${apt.identifier?.[0]?.value ? `<span style="font-size:13px">${apt.identifier[0].value}</span>` : ''}
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Paciente</label><div class="fw-600">${patient?.actor?.display || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Médico</label><div class="fw-600">${practitioner?.actor?.display || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Servicio / Especialidad</label><div>${apt.serviceType?.[0]?.text || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Tipo de cita</label><div>${apt.appointmentType?.coding?.[0]?.display || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Inicio</label><div class="fw-600">${formatDateTime(apt.start)}</div></div>
+      <div class="form-group"><label class="form-label">Fin</label><div class="fw-600">${formatDateTime(apt.end)}</div></div>
+      <div class="form-group"><label class="form-label">Motivo</label><div>${apt.reasonCode?.[0]?.text || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Slot asignado</label><div>${apt.slot?.[0]?.reference || 'Sin slot'}</div></div>
+      ${apt.comment ? `<div class="form-group full-width"><label class="form-label">Comentarios</label><div>${apt.comment}</div></div>` : ''}
+      <div class="form-group"><label class="form-label">Creada</label><div class="text-sm">${formatDateTime(apt.created)}</div></div>
+    </div>
+
+    ${isCancelled ? `
+    <div class="divider"></div>
+    <div class="alert alert-error">
+      <span class="material-icons">cancel</span>
+      <div>
+        <strong>Cita cancelada</strong><br/>
+        <span class="fw-500">Motivo (cancelationReason):</span> ${apt.cancelationReason?.coding?.[0]?.display || '-'}<br/>
+        <span class="fw-500">Detalle:</span> ${apt.cancelationReason?.text || '-'}
+      </div>
+    </div>` : ''}
+
+    ${response ? `
+    <div class="appointment-response-card">
+      <div class="response-header">
+        <div class="response-icon"><span class="material-icons">check_circle</span></div>
+        <div>
+          <div class="fw-600" style="font-size:16px">AppointmentResponse generada</div>
+          <div class="text-sm text-muted">El paciente recibió confirmación de la cita</div>
+        </div>
+      </div>
+      <div class="response-details">
+        <div class="response-detail"><div class="rd-label">Inicio confirmado</div><div class="rd-value">${formatDateTime(response.start)}</div></div>
+        <div class="response-detail"><div class="rd-label">Fin confirmado</div><div class="rd-value">${formatDateTime(response.end)}</div></div>
+        <div class="response-detail"><div class="rd-label">Estado de participante</div><div class="rd-value">${response.participantStatus}</div></div>
+        <div class="response-detail"><div class="rd-label">Actor</div><div class="rd-value">${response.actor?.display || '-'}</div></div>
+      </div>
+      <div style="margin-top:12px;background:rgba(255,255,255,.5);border-radius:10px;padding:12px;font-size:13px">
+        <span class="material-icons" style="font-size:16px;vertical-align:middle">message</span>
+        ${response.comment || '-'}
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('view-apt-footer').innerHTML = `
+    <button class="btn btn-outlined" onclick="closeModal('view-apt-modal')">Cerrar</button>
+    ${canCancel ? `<button class="btn btn-danger" onclick="closeModal('view-apt-modal');openCancelModal('${apt.id}')"><span class="material-icons">cancel</span> Cancelar cita</button>` : ''}
+    ${!isCancelled && apt.status !== 'fulfilled' ? `<button class="btn btn-secondary" onclick="markFulfilled('${apt.id}')"><span class="material-icons">check_circle</span> Marcar atendida</button>` : ''}
+  `;
+  openModal('view-apt-modal');
+}
+
+function markFulfilled(id) {
+  const apt = getResource('Appointment', id);
+  if (!apt) return;
+  apt.status = 'fulfilled';
+  updateResource('Appointment', id, apt);
+  showToast('Cita marcada como atendida (fulfilled)', 'success');
+  closeModal('view-apt-modal');
+  renderApts();
+  renderAptStats();
+}
+
+// ==========================================
+// Cancelar Appointment
+// ==========================================
+function openCancelModal(id) {
+  cancelAptId = id;
+  selectedCancelCode = null;
+  selectedCancelDisplay = null;
+  document.querySelectorAll('.reason-option').forEach(r => r.classList.remove('selected'));
+  document.getElementById('cancel-reason-text').value = '';
+
+  const apt = getResource('Appointment', id);
+  const patient = apt?.participant?.find(p => p.actor?.reference?.startsWith('Patient/'));
+  document.getElementById('cancel-apt-id').textContent = id;
+  document.getElementById('cancel-apt-desc').textContent = `${patient?.actor?.display || '-'} · ${apt?.serviceType?.[0]?.text || '-'} · ${formatDateTime(apt?.start)}`;
+  openModal('cancel-apt-modal');
+}
+
+function selectReason(el) {
+  document.querySelectorAll('.reason-option').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCancelCode = el.dataset.code;
+  selectedCancelDisplay = el.dataset.display;
+}
+
+function confirmCancel() {
+  const reasonText = document.getElementById('cancel-reason-text').value.trim();
+  if (!selectedCancelCode) { showToast('Selecciona un motivo de cancelación', 'error'); return; }
+  if (!reasonText) { showToast('Escribe el detalle del motivo', 'error'); return; }
+
+  const apt = getResource('Appointment', cancelAptId);
+  if (!apt) return;
+
+  apt.status = 'cancelled';
+  apt.cancelationReason = {
+    coding: [{
+      system: 'http://terminology.hl7.org/CodeSystem/appointment-cancellation-reason',
+      code: selectedCancelCode,
+      display: selectedCancelDisplay
+    }],
+    text: reasonText
+  };
+  updateResource('Appointment', cancelAptId, apt);
+
+  // Liberar el slot si existía
+  const slotRef = apt.slot?.[0]?.reference?.replace('Slot/', '');
+  if (slotRef) {
+    const slot = getResource('Slot', slotRef);
+    if (slot && slot.status === 'busy') { slot.status = 'free'; updateResource('Slot', slotRef, slot); }
+  }
+
+  showToast(`Cita cancelada. Appointment.status = "cancelled". Motivo: ${selectedCancelDisplay}`, 'warning');
+  closeModal('cancel-apt-modal');
+  renderApts();
+  renderAptStats();
+}
+
+function editApt(id) { const a = getResource('Appointment', id); if (a) openAptModal(a); }
+function openDeleteApt(id) { deleteAptId = id; document.getElementById('delete-apt-id').textContent = id; openModal('delete-apt-modal'); }
+function confirmDeleteApt() {
+  deleteResource('Appointment', deleteAptId);
+  deleteResource('AppointmentResponse', `apr-${deleteAptId}`);
+  showToast('Appointment eliminado', 'warning');
+  closeModal('delete-apt-modal');
+  renderApts();
+  renderAptStats();
+}
+</script>
+</body>
+</html>

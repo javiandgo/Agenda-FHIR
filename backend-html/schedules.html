@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule &amp; Slot - ACME Salud FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><span class="material-icons brand-icon">local_hospital</span><div><div class="brand-name">ACME Salud</div><div class="brand-sub">Sistema FHIR R4</div></div></div>
+    <div class="sidebar-user"><div class="user-avatar"><span class="material-icons">person</span></div><div class="user-info"><div class="user-name" id="sidebar-user-name">-</div><span class="user-role" id="sidebar-user-role">Admin</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a class="nav-item" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
+      <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
+      <div class="nav-section-title">Recursos FHIR</div>
+      <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
+      <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
+      <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item active" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <div class="nav-section-title">Portal</div>
+      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="sidebar-toggle"><span class="material-icons">menu</span></button>
+        <div><div class="topbar-title">Schedule &amp; Slot</div><div class="breadcrumb">FHIR Resources · Agendas mensuales y espacios de tiempo</div></div>
+      </div>
+      <div class="topbar-right"><span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span></div>
+    </header>
+
+    <main class="page-content">
+      <div class="alert alert-info mb-lg">
+        <span class="material-icons">info</span>
+        <div><strong>FHIR Schedule + Slot:</strong> Cada médico especialista tiene su propia <strong>agenda (Schedule) definida mensualmente</strong>. Los <strong>Slots</strong> son los espacios de tiempo disponibles dentro de esa agenda. Al agendar una cita (Appointment) se asigna un Slot.</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('schedules', this)"><span class="material-icons">calendar_month</span> Schedules</button>
+        <button class="tab-btn" onclick="switchTab('slots', this)"><span class="material-icons">schedule</span> Slots</button>
+      </div>
+
+      <!-- TAB: Schedules -->
+      <div class="tab-content active" id="tab-schedules">
+        <div class="crud-card">
+          <div class="crud-header">
+            <div><div class="crud-title">Agendas mensuales</div><div class="crud-subtitle" id="sched-count">Cargando...</div></div>
+            <div class="crud-actions">
+              <button class="btn btn-primary" onclick="openSchedModal()"><span class="material-icons">add</span> Nuevo Schedule</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>ID FHIR</th><th>Identificador</th><th>Actor (Médico/Servicio)</th><th>Especialidad</th><th>Horizonte de planificación</th><th>Comentario</th><th>Estado</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="scheds-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Slots -->
+      <div class="tab-content hidden" id="tab-slots">
+        <div class="crud-card">
+          <div class="crud-header">
+            <div><div class="crud-title">Espacios de tiempo (Slots)</div><div class="crud-subtitle" id="slot-count">Cargando...</div></div>
+            <div class="crud-actions">
+              <div class="search-field">
+                <span class="material-icons" style="font-size:18px;color:var(--md-sys-color-on-surface-variant)">filter_list</span>
+                <select id="filter-slot-status" onchange="renderSlots()" style="border:none;background:none;outline:none;font-size:14px;cursor:pointer">
+                  <option value="">Todos los estados</option>
+                  <option value="free">Libres</option>
+                  <option value="busy">Ocupados</option>
+                  <option value="busy-unavailable">No disponible</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="openSlotModal()"><span class="material-icons">add</span> Nuevo Slot</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>ID FHIR</th><th>Schedule</th><th>Servicio</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="slots-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal Schedule -->
+<div class="modal-overlay hidden" id="sched-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">calendar_month</span><span id="sched-modal-title">Nuevo Schedule</span></div>
+      <button class="close-btn" onclick="closeModal('sched-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Identificación FHIR</div>
+        <div class="form-group">
+          <label class="form-label">ID del recurso <span class="required">*</span></label>
+          <input type="text" id="sched-id" class="form-control" placeholder="sch-casas-may" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Identificador interno</label>
+          <input type="text" id="sched-identifier" class="form-control" placeholder="SCH-CASAS-MAY2026"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="sched-active" class="form-control"><option value="true">Activo</option><option value="false">Inactivo</option></select>
+        </div>
+
+        <div class="form-section-title">Actor de la agenda</div>
+        <div class="form-group">
+          <label class="form-label">Médico (Practitioner) <span class="required">*</span></label>
+          <select id="sched-prac" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Especialidad</label>
+          <select id="sched-specialty" class="form-control">
+            <option value="394814009|Medicina General">Medicina General</option>
+            <option value="394537008|Pediatría">Pediatría</option>
+            <option value="394802001|Cardiología">Cardiología</option>
+            <option value="394583002|Dermatología">Dermatología</option>
+            <option value="394585009|Ob/Ginecología">Ob/Ginecología</option>
+            <option value="394589003|Neurología">Neurología</option>
+          </select>
+        </div>
+
+        <div class="form-section-title">Horizonte de planificación mensual</div>
+        <div class="form-group">
+          <label class="form-label">Inicio del mes <span class="required">*</span></label>
+          <input type="date" id="sched-start" class="form-control" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fin del mes <span class="required">*</span></label>
+          <input type="date" id="sched-end" class="form-control" required/>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Comentario / descripción</label>
+          <textarea id="sched-comment" class="form-control" placeholder="Agenda mensual de Pediatría - Dr. Casas - Mayo 2026" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('sched-modal')">Cancelar</button>
+      <button class="btn btn-secondary" onclick="saveSched()"><span class="material-icons">save</span> Guardar Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Slot -->
+<div class="modal-overlay hidden" id="slot-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">schedule</span><span id="slot-modal-title">Nuevo Slot</span></div>
+      <button class="close-btn" onclick="closeModal('slot-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Identificación</div>
+        <div class="form-group">
+          <label class="form-label">ID del recurso <span class="required">*</span></label>
+          <input type="text" id="slot-id" class="form-control" placeholder="slot-001" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Schedule (agenda) <span class="required">*</span></label>
+          <select id="slot-schedule" class="form-control" required></select>
+        </div>
+
+        <div class="form-section-title">Tiempo</div>
+        <div class="form-group">
+          <label class="form-label">Inicio <span class="required">*</span></label>
+          <input type="datetime-local" id="slot-start" class="form-control" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fin <span class="required">*</span></label>
+          <input type="datetime-local" id="slot-end" class="form-control" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado <span class="required">*</span></label>
+          <select id="slot-status" class="form-control">
+            <option value="free">Libre</option>
+            <option value="busy">Ocupado</option>
+            <option value="busy-unavailable">No disponible</option>
+            <option value="busy-tentative">Tentativo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comentario</label>
+          <input type="text" id="slot-comment" class="form-control" placeholder="Disponible para primera vez"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('slot-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSlot()"><span class="material-icons">save</span> Guardar Slot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal eliminar -->
+<div class="modal-overlay hidden" id="delete-sched-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar</div><button class="close-btn" onclick="closeModal('delete-sched-modal')"><span class="material-icons">close</span></button></div>
+    <div class="modal-body"><p>¿Eliminar este recurso? Esta acción es irreversible.</p><p class="text-sm text-muted mt-md">ID: <span class="fhir-id" id="delete-sched-id">-</span></p></div>
+    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-sched-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeleteSched()"><span class="material-icons">delete</span> Eliminar</button></div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="js/fhir-client.js"></script>
+<script>
+const session = requireAuth(['admin']);
+if (session) { renderSidebarUser(session); renderScheds(); renderSlots(); if (new URLSearchParams(location.search).get('new')) openSchedModal(); }
+
+let editingSchedId = null, editingSlotId = null, deleteSchedId = null, deleteSchedType = null;
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => { c.classList.remove('active'); c.classList.add('hidden'); });
+  btn.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function renderScheds() {
+  const all = getResources('Schedule');
+  document.getElementById('sched-count').textContent = `${all.length} agenda(s) registrada(s)`;
+  const tbody = document.getElementById('scheds-table');
+  tbody.innerHTML = '';
+  if (!all.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">Sin agendas registradas</td></tr>'; return; }
+
+  all.forEach(sched => {
+    const actor = sched.actor?.map(a => a.display || a.reference).join(', ') || '-';
+    const spec = sched.specialty?.[0]?.coding?.[0]?.display || sched.serviceType?.[0]?.coding?.[0]?.display || '-';
+    const slotsCount = getResources('Slot').filter(sl => sl.schedule?.reference === `Schedule/${sched.id}`).length;
+    const freeCount  = getResources('Slot').filter(sl => sl.schedule?.reference === `Schedule/${sched.id}` && sl.status === 'free').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="fhir-id">${sched.id}</span></td>
+      <td><span class="text-xs" style="font-family:monospace">${sched.identifier?.[0]?.value || '-'}</span></td>
+      <td><strong>${actor}</strong></td>
+      <td><span class="badge badge-booked">${spec}</span></td>
+      <td class="text-sm">${formatDate(sched.planningHorizon?.start)} – ${formatDate(sched.planningHorizon?.end)}</td>
+      <td class="text-sm text-muted">${sched.comment || '-'}<br><span class="badge badge-active">${freeCount} libres</span> / <span class="badge badge-inactive">${slotsCount} total</span></td>
+      <td><span class="badge ${sched.active ? 'badge-active' : 'badge-inactive'}">${sched.active ? 'Activo' : 'Inactivo'}</span></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outlined btn-sm" onclick='editSched(${JSON.stringify(sched.id)})'><span class="material-icons" style="font-size:16px">edit</span></button>
+          <button class="btn btn-secondary btn-sm" onclick='openSlotModal(null, ${JSON.stringify(sched.id)})'><span class="material-icons" style="font-size:16px">add</span> Slot</button>
+          <button class="btn btn-danger btn-sm" onclick='openDeleteSched(${JSON.stringify(sched.id)}, "Schedule")'><span class="material-icons" style="font-size:16px">delete</span></button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderSlots() {
+  const statusFilter = document.getElementById('filter-slot-status')?.value || '';
+  let all = getResources('Slot');
+  if (statusFilter) all = all.filter(s => s.status === statusFilter);
+  document.getElementById('slot-count').textContent = `${all.length} slot(s)`;
+  const tbody = document.getElementById('slots-table');
+  tbody.innerHTML = '';
+  if (!all.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">Sin slots registrados</td></tr>'; return; }
+
+  const statusBadge = { free: 'badge-active', busy: 'badge-cancelled', 'busy-unavailable': 'badge-inactive', 'busy-tentative': 'badge-pending' };
+  all.forEach(slot => {
+    const sched = getResource('Schedule', slot.schedule?.reference?.replace('Schedule/', ''));
+    const actor = sched?.actor?.[0]?.display || slot.schedule?.reference || '-';
+    const service = slot.serviceType?.[0]?.coding?.[0]?.display || '-';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="fhir-id">${slot.id}</span></td>
+      <td>${actor}</td>
+      <td>${service}</td>
+      <td class="fw-500">${formatDateTime(slot.start)}</td>
+      <td>${formatDateTime(slot.end)}</td>
+      <td><span class="badge ${statusBadge[slot.status] || 'badge-inactive'}">${slot.status}</span></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outlined btn-sm" onclick='editSlot(${JSON.stringify(slot.id)})'><span class="material-icons" style="font-size:16px">edit</span></button>
+          <button class="btn btn-danger btn-sm" onclick='openDeleteSched(${JSON.stringify(slot.id)}, "Slot")'><span class="material-icons" style="font-size:16px">delete</span></button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function openSchedModal(sched = null) {
+  editingSchedId = sched?.id || null;
+  const pracs = getResources('Practitioner');
+  document.getElementById('sched-prac').innerHTML = pracs.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+  document.getElementById('sched-modal-title').textContent = sched ? 'Editar Schedule' : 'Nuevo Schedule';
+  document.getElementById('sched-id').value = sched?.id || '';
+  document.getElementById('sched-id').disabled = !!sched;
+  document.getElementById('sched-identifier').value = sched?.identifier?.[0]?.value || '';
+  document.getElementById('sched-active').value = String(sched?.active !== false);
+  if (sched) document.getElementById('sched-prac').value = sched.actor?.[0]?.reference?.replace('Practitioner/', '') || '';
+  const spec = sched?.specialty?.[0]?.coding?.[0] || sched?.serviceType?.[0]?.coding?.[0];
+  if (spec) { const val = `${spec.code}|${spec.display}`; const opt = document.getElementById('sched-specialty').querySelector(`option[value="${val}"]`); if (opt) document.getElementById('sched-specialty').value = val; }
+  document.getElementById('sched-start').value = sched?.planningHorizon?.start || '';
+  document.getElementById('sched-end').value = sched?.planningHorizon?.end || '';
+  document.getElementById('sched-comment').value = sched?.comment || '';
+  openModal('sched-modal');
+}
+
+function editSched(id) { const s = getResource('Schedule', id); if (s) openSchedModal(s); }
+
+function saveSched() {
+  const id = document.getElementById('sched-id').value.trim().replace(/\s+/g, '-');
+  const pracId = document.getElementById('sched-prac').value;
+  const start = document.getElementById('sched-start').value;
+  const end = document.getElementById('sched-end').value;
+  if (!id || !pracId || !start || !end) { showToast('ID, médico y horizonte son obligatorios', 'error'); return; }
+
+  const prac = getResource('Practitioner', pracId);
+  const specVal = document.getElementById('sched-specialty').value.split('|');
+  const sched = {
+    resourceType: 'Schedule', id,
+    identifier: [{ system: 'urn:co:acme:schedule', value: document.getElementById('sched-identifier').value.trim() }],
+    active: document.getElementById('sched-active').value === 'true',
+    serviceType: [{ coding: [{ system: 'http://snomed.info/sct', code: specVal[0], display: specVal[1] }] }],
+    specialty: [{ coding: [{ system: 'http://snomed.info/sct', code: specVal[0], display: specVal[1] }] }],
+    actor: [{ reference: `Practitioner/${pracId}`, display: getPatientName(prac) }],
+    planningHorizon: { start, end },
+    comment: document.getElementById('sched-comment').value.trim()
+  };
+
+  if (editingSchedId) { updateResource('Schedule', editingSchedId, sched); showToast('Schedule actualizado', 'success'); }
+  else {
+    if (getResource('Schedule', id)) { showToast('Ya existe un Schedule con ese ID', 'error'); return; }
+    createResource('Schedule', sched);
+    showToast('Schedule creado', 'success');
+  }
+  closeModal('sched-modal');
+  renderScheds();
+}
+
+function openSlotModal(slot = null, preSchedId = null) {
+  editingSlotId = slot?.id || null;
+  const scheds = getResources('Schedule');
+  document.getElementById('slot-schedule').innerHTML = scheds.map(s => `<option value="${s.id}">${s.actor?.[0]?.display || s.id} (${formatDate(s.planningHorizon?.start)})</option>`).join('');
+  document.getElementById('slot-modal-title').textContent = slot ? 'Editar Slot' : 'Nuevo Slot';
+  document.getElementById('slot-id').value = slot?.id || '';
+  document.getElementById('slot-id').disabled = !!slot;
+  document.getElementById('slot-schedule').value = slot?.schedule?.reference?.replace('Schedule/', '') || preSchedId || '';
+  const toLocal = iso => iso ? iso.substring(0, 16) : '';
+  document.getElementById('slot-start').value = toLocal(slot?.start) || '';
+  document.getElementById('slot-end').value = toLocal(slot?.end) || '';
+  document.getElementById('slot-status').value = slot?.status || 'free';
+  document.getElementById('slot-comment').value = slot?.comment || '';
+  openModal('slot-modal');
+}
+
+function editSlot(id) { const s = getResource('Slot', id); if (s) openSlotModal(s); }
+
+function saveSlot() {
+  const id = document.getElementById('slot-id').value.trim().replace(/\s+/g, '-');
+  const schedId = document.getElementById('slot-schedule').value;
+  const start = document.getElementById('slot-start').value;
+  const end = document.getElementById('slot-end').value;
+  if (!id || !schedId || !start || !end) { showToast('ID, agenda, inicio y fin son obligatorios', 'error'); return; }
+
+  const sched = getResource('Schedule', schedId);
+  const spec = sched?.serviceType?.[0]?.coding?.[0];
+  const slot = {
+    resourceType: 'Slot', id,
+    schedule: { reference: `Schedule/${schedId}` },
+    status: document.getElementById('slot-status').value,
+    serviceType: spec ? [{ coding: [spec] }] : [],
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
+    comment: document.getElementById('slot-comment').value.trim()
+  };
+
+  if (editingSlotId) { updateResource('Slot', editingSlotId, slot); showToast('Slot actualizado', 'success'); }
+  else {
+    if (getResource('Slot', id)) { showToast('Ya existe un Slot con ese ID', 'error'); return; }
+    createResource('Slot', slot);
+    showToast('Slot creado', 'success');
+  }
+  closeModal('slot-modal');
+  renderSlots();
+  renderScheds();
+}
+
+function openDeleteSched(id, type) { deleteSchedId = id; deleteSchedType = type; document.getElementById('delete-sched-id').textContent = id; openModal('delete-sched-modal'); }
+function confirmDeleteSched() {
+  deleteResource(deleteSchedType, deleteSchedId);
+  showToast('Eliminado correctamente', 'warning');
+  closeModal('delete-sched-modal');
+  renderScheds(); renderSlots();
+}
+</script>
+</body>
+</html>

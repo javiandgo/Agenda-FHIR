@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Portal - ACME Salud FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <style>
+    .patient-hero {
+      background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004ba0 100%);
+      border-radius: 20px;
+      padding: 32px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .patient-avatar-lg {
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .patient-hero-info .hero-name { font-size: 26px; font-weight: 700; }
+    .patient-hero-info .hero-sub { font-size: 14px; opacity: .8; margin-top: 4px; }
+    .hero-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .hero-chip { background: rgba(255,255,255,.18); border-radius: 16px; padding: 4px 12px; font-size: 12px; font-weight: 500; }
+
+    .coverage-banner {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--md-sys-color-secondary-container);
+      border-radius: 16px; padding: 16px 20px; margin-bottom: 20px;
+    }
+    .coverage-banner .material-icons { font-size: 36px; color: var(--md-sys-color-secondary); }
+    .coverage-banner .cov-name { font-weight: 700; font-size: 16px; }
+    .coverage-banner .cov-sub { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px; }
+
+    .apt-timeline { display: flex; flex-direction: column; gap: 16px; }
+    .apt-item {
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 16px; padding: 20px; background: #fff;
+      display: flex; gap: 20px; align-items: flex-start;
+      transition: box-shadow 0.2s;
+    }
+    .apt-item:hover { box-shadow: var(--md-sys-elevation-2); }
+    .apt-item.cancelled { opacity: 0.65; }
+    .apt-date-block {
+      background: var(--md-sys-color-primary-container);
+      border-radius: 14px; padding: 10px 14px; text-align: center;
+      min-width: 60px; flex-shrink: 0;
+    }
+    .apt-date-block .day { font-size: 26px; font-weight: 700; color: var(--md-sys-color-primary); line-height: 1; }
+    .apt-date-block .month { font-size: 11px; font-weight: 600; color: var(--md-sys-color-primary); text-transform: uppercase; margin-top: 2px; }
+    .apt-date-block .time { font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
+    .apt-body { flex: 1; min-width: 0; }
+    .apt-service { font-size: 16px; font-weight: 600; }
+    .apt-meta { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .apt-meta-item { display: flex; align-items: center; gap: 4px; }
+    .apt-cancel-info { background: var(--md-sys-color-error-container); border-radius: 10px; padding: 10px 14px; margin-top: 10px; font-size: 13px; color: var(--md-sys-color-error); }
+    .apt-response-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--md-sys-color-secondary-container); border-radius: 16px; padding: 3px 10px; font-size: 12px; margin-top: 8px; cursor: pointer; }
+    .apt-item .apt-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+
+    .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--md-sys-color-outline-variant); margin-bottom: 20px; }
+    .tab { padding: 12px 24px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; border-radius: 8px 8px 0 0; }
+    .tab.active { color: var(--md-sys-color-primary); border-bottom-color: var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .agendar-cta {
+      background: linear-gradient(135deg, var(--md-sys-color-secondary) 0%, #009243 100%);
+      border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
+    }
+    .agendar-cta .cta-icon { font-size: 48px; }
+    .agendar-cta .cta-title { font-size: 20px; font-weight: 700; }
+    .agendar-cta .cta-sub { font-size: 13px; opacity: .85; margin-top: 4px; }
+    .agendar-cta .cta-btn { margin-left: auto; background: rgba(255,255,255,.25); border: 2px solid #fff; color: #fff; border-radius: 24px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .agendar-cta .cta-btn:hover { background: rgba(255,255,255,.4); }
+  </style>
+</head>
+<body>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><span class="material-icons brand-icon">local_hospital</span><div><div class="brand-name">ACME Salud</div><div class="brand-sub">Portal Paciente</div></div></div>
+    <div class="sidebar-user"><div class="user-avatar"><span class="material-icons">person</span></div><div class="user-info"><div class="user-name" id="sidebar-user-name">-</div><span class="user-role">Paciente</span></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Mi Portal</div>
+      <a class="nav-item active" href="patient-dashboard.html"><span class="material-icons">home</span> Mi Panel</a>
+      <a class="nav-item" href="../frontend-html/agendar-cita.html" target="_blank"><span class="material-icons">add_circle</span> Agendar Cita</a>
+      <div class="nav-section-title">Mis datos</div>
+      <a class="nav-item" id="nav-mis-citas" href="#"><span class="material-icons">event</span> Mis Citas</a>
+      <a class="nav-item" id="nav-mi-cobertura" href="#"><span class="material-icons">health_and_safety</span> Mi Cobertura</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="sidebar-toggle"><span class="material-icons">menu</span></button>
+        <div><div class="topbar-title">Mi Portal de Salud</div><div class="breadcrumb">ACME Salud · Sistema FHIR R4</div></div>
+      </div>
+      <div class="topbar-right">
+        <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span>
+        <a href="../frontend-html/agendar-cita.html" target="_blank" class="btn btn-primary">
+          <span class="material-icons">add</span> Nueva cita
+        </a>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <!-- Hero del paciente -->
+      <div class="patient-hero" id="patient-hero">
+        <div class="patient-avatar-lg" id="patient-avatar-text">P</div>
+        <div class="patient-hero-info">
+          <div class="hero-name" id="hero-name">Cargando...</div>
+          <div class="hero-sub" id="hero-sub">-</div>
+          <div class="hero-chips" id="hero-chips"></div>
+        </div>
+      </div>
+
+      <!-- Cobertura banner -->
+      <div id="coverage-banner"></div>
+
+      <!-- CTA agendar -->
+      <div class="agendar-cta">
+        <span class="material-icons cta-icon">calendar_today</span>
+        <div>
+          <div class="cta-title">¿Necesitas una cita médica?</div>
+          <div class="cta-sub">Accede al portal de agendamiento y escoge la especialidad y fecha que mejor te convenga.</div>
+        </div>
+        <a href="../frontend-html/agendar-cita.html" target="_blank" class="cta-btn">Agendar ahora</a>
+      </div>
+
+      <!-- Estadísticas rápidas -->
+      <div class="stats-grid" style="margin-bottom:24px" id="patient-stats"></div>
+
+      <!-- Tabs de citas -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('proximas')"><span class="material-icons" style="font-size:16px;vertical-align:middle">upcoming</span> Próximas</button>
+        <button class="tab" onclick="switchTab('historial')"><span class="material-icons" style="font-size:16px;vertical-align:middle">history</span> Historial</button>
+        <button class="tab" onclick="switchTab('canceladas')"><span class="material-icons" style="font-size:16px;vertical-align:middle">cancel</span> Canceladas</button>
+        <button class="tab" onclick="switchTab('respuestas')"><span class="material-icons" style="font-size:16px;vertical-align:middle">check_circle</span> Respuestas FHIR</button>
+      </div>
+
+      <div id="tab-proximas" class="tab-panel active"></div>
+      <div id="tab-historial" class="tab-panel"></div>
+      <div id="tab-canceladas" class="tab-panel"></div>
+      <div id="tab-respuestas" class="tab-panel"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal ver respuesta -->
+<div class="modal-overlay hidden" id="response-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">check_circle</span> AppointmentResponse</div>
+      <button class="close-btn" onclick="closeModal('response-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body" id="response-modal-body"></div>
+    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('response-modal')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- Modal cancelar -->
+<div class="modal-overlay hidden" id="cancel-my-apt-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">cancel</span> Cancelar mi cita</div>
+      <button class="close-btn" onclick="closeModal('cancel-my-apt-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning mb-lg"><span class="material-icons">warning</span> Esta acción no se puede deshacer. Se registrará el motivo de cancelación en tu historial.</div>
+      <p class="fw-500 mb-md">Cita: <span class="fhir-id" id="my-cancel-apt-desc">-</span></p>
+      <div class="form-group">
+        <label class="form-label">Motivo de cancelación <span class="required">*</span></label>
+        <select id="my-cancel-reason-code" class="form-control">
+          <option value="pat|Por el paciente">No puedo asistir</option>
+          <option value="pat|Por el paciente - Viaje">Tengo un viaje</option>
+          <option value="pat|Por el paciente - Trabajo">Compromisos laborales</option>
+          <option value="oth-cms|Otro">Otra razón</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Detalle adicional</label>
+        <textarea id="my-cancel-reason-text" class="form-control" rows="3" placeholder="Cuéntanos más sobre el motivo (opcional)..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('cancel-my-apt-modal')">Volver</button>
+      <button class="btn btn-danger" onclick="confirmMyCancel()"><span class="material-icons">cancel</span> Confirmar cancelación</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="js/fhir-client.js"></script>
+<script>
+const session = requireAuth(['patient']);
+let myPatientId = null, myCancelAptId = null;
+
+if (session) {
+  renderSidebarUser(session);
+  const patients = getResources('Patient');
+  const myPat = patients.find(p => p.id === session.patientId) || patients[0];
+  if (myPat) {
+    myPatientId = myPat.id;
+    renderPatientHero(myPat);
+    renderCoverageBanner(myPat);
+    renderPatientStats(myPat);
+    renderAllTabs(myPat);
+  }
+}
+
+function renderPatientHero(pat) {
+  const name = getPatientName(pat);
+  document.getElementById('hero-name').textContent = name;
+  document.getElementById('patient-avatar-text').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('hero-sub').textContent = `Paciente · ${pat.id} · ${pat.gender === 'male' ? 'Masculino' : 'Femenino'}`;
+  const chips = [];
+  if (pat.birthDate) chips.push(`<div class="hero-chip">Nac. ${formatDate(pat.birthDate)}</div>`);
+  if (pat.identifier?.[0]?.value) chips.push(`<div class="hero-chip">ID: ${pat.identifier[0].value}</div>`);
+  document.getElementById('hero-chips').innerHTML = chips.join('');
+  document.getElementById('sidebar-user-name').textContent = name.split(' ')[0];
+}
+
+function renderCoverageBanner(pat) {
+  const cov = getResources('Coverage').find(c => c.beneficiary?.reference === `Patient/${pat.id}`);
+  const el = document.getElementById('coverage-banner');
+  if (cov) {
+    el.innerHTML = `<div class="coverage-banner">
+      <span class="material-icons">health_and_safety</span>
+      <div>
+        <div class="cov-name">${cov.payor?.[0]?.display || 'Aseguradora'}</div>
+        <div class="cov-sub">${cov.class?.[0]?.name || cov.type?.coding?.[0]?.display || ''} · Vigencia: ${formatDate(cov.period?.start)} – ${formatDate(cov.period?.end)}</div>
+      </div>
+      <span class="badge badge-booked" style="margin-left:auto">Cobertura activa</span>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="coverage-banner" style="background:var(--md-sys-color-error-container)">
+      <span class="material-icons" style="color:var(--md-sys-color-error)">warning</span>
+      <div><div class="cov-name" style="color:var(--md-sys-color-error)">Sin cobertura registrada</div>
+      <div class="cov-sub">Contacta a ACME Salud para registrar tu seguro médico.</div></div>
+    </div>`;
+  }
+}
+
+function getMyApts(pat) {
+  return getResources('Appointment').filter(a =>
+    a.participant?.some(p => p.actor?.reference === `Patient/${pat.id}`)
+  );
+}
+
+function renderPatientStats(pat) {
+  const apts = getMyApts(pat);
+  const stats = [
+    { label: 'Mis citas', icon: 'event', color: 'blue', count: apts.length },
+    { label: 'Próximas', icon: 'upcoming', color: 'blue', count: apts.filter(a => a.status === 'booked' && new Date(a.start) >= new Date()).length },
+    { label: 'Realizadas', icon: 'check_circle', color: 'green', count: apts.filter(a => a.status === 'fulfilled').length },
+    { label: 'Canceladas', icon: 'cancel', color: 'red', count: apts.filter(a => a.status === 'cancelled').length },
+  ];
+  document.getElementById('patient-stats').innerHTML = stats.map(s =>
+    `<div class="stat-card"><div class="stat-icon ${s.color}"><span class="material-icons">${s.icon}</span></div><div class="stat-info"><div class="stat-value">${s.count}</div><div class="stat-label">${s.label}</div></div></div>`
+  ).join('');
+}
+
+function renderAllTabs(pat) {
+  const apts = getMyApts(pat);
+  const now = new Date();
+  const proximas = apts.filter(a => (a.status === 'booked' || a.status === 'pending') && new Date(a.start) >= now).sort((a, b) => new Date(a.start) - new Date(b.start));
+  const historial = apts.filter(a => a.status === 'fulfilled' || (a.status === 'booked' && new Date(a.start) < now)).sort((a, b) => new Date(b.start) - new Date(a.start));
+  const canceladas = apts.filter(a => a.status === 'cancelled').sort((a, b) => new Date(b.start) - new Date(a.start));
+  const responses = getResources('AppointmentResponse').filter(r => apts.some(a => a.id === r.appointment?.reference?.replace('Appointment/', '')));
+
+  document.getElementById('tab-proximas').innerHTML = proximas.length
+    ? `<div class="apt-timeline">${proximas.map(a => aptItemHtml(a, true)).join('')}</div>`
+    : emptyState('upcoming', 'No tienes citas próximas', '<a href="../frontend-html/agendar-cita.html" target="_blank" class="btn btn-primary"><span class="material-icons">add</span> Agendar una cita</a>');
+
+  document.getElementById('tab-historial').innerHTML = historial.length
+    ? `<div class="apt-timeline">${historial.map(a => aptItemHtml(a, false)).join('')}</div>`
+    : emptyState('history', 'Sin citas en el historial', '');
+
+  document.getElementById('tab-canceladas').innerHTML = canceladas.length
+    ? `<div class="apt-timeline">${canceladas.map(a => aptItemHtml(a, false, true)).join('')}</div>`
+    : emptyState('cancel', 'No tienes citas canceladas', '');
+
+  document.getElementById('tab-respuestas').innerHTML = responses.length
+    ? `<div class="apt-timeline">${responses.map(r => responseItemHtml(r, apts)).join('')}</div>`
+    : emptyState('check_circle', 'No hay respuestas FHIR disponibles', '');
+}
+
+function aptItemHtml(apt, canCancel, showCancelReason = false) {
+  const d = apt.start ? new Date(apt.start) : null;
+  const practitioner = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'));
+  const statusBadge = { booked: 'badge-booked', pending: 'badge-pending', cancelled: 'badge-cancelled', fulfilled: 'badge-fulfilled', proposed: 'badge-proposed' };
+  const monthNames = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  return `<div class="apt-item ${apt.status === 'cancelled' ? 'cancelled' : ''}">
+    <div class="apt-date-block">
+      <div class="day">${d ? d.getDate() : '-'}</div>
+      <div class="month">${d ? monthNames[d.getMonth()] : '-'}</div>
+      <div class="time">${d ? d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '-'}</div>
+    </div>
+    <div class="apt-body">
+      <div class="apt-service">${apt.serviceType?.[0]?.text || apt.serviceType?.[0]?.coding?.[0]?.display || 'Consulta médica'}</div>
+      <div class="apt-meta">
+        <div class="apt-meta-item"><span class="material-icons" style="font-size:14px">medical_services</span>${practitioner?.actor?.display || 'Médico asignado'}</div>
+        ${apt.reasonCode?.[0]?.text ? `<div class="apt-meta-item"><span class="material-icons" style="font-size:14px">notes</span>${apt.reasonCode[0].text}</div>` : ''}
+        <div class="apt-meta-item"><span class="material-icons" style="font-size:14px">schedule</span>${formatDateTime(apt.start)} – ${formatTime(apt.end)}</div>
+      </div>
+      ${apt.comment ? `<div class="text-sm text-muted mt-md" style="margin-top:8px"><span class="material-icons" style="font-size:14px;vertical-align:middle">info</span> ${apt.comment}</div>` : ''}
+      ${showCancelReason && apt.cancelationReason ? `<div class="apt-cancel-info"><span class="material-icons" style="font-size:14px;vertical-align:middle">cancel</span> <strong>Motivo:</strong> ${apt.cancelationReason.coding?.[0]?.display} – ${apt.cancelationReason.text || ''}</div>` : ''}
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="badge ${statusBadge[apt.status] || 'badge-inactive'}">${apt.status}</span>
+        <span class="apt-response-chip" onclick="viewResponse('${apt.id}')"><span class="material-icons" style="font-size:14px">description</span> Ver respuesta FHIR</span>
+      </div>
+    </div>
+    <div class="apt-actions">
+      ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="openMyCancelModal('${apt.id}')"><span class="material-icons" style="font-size:16px">cancel</span> Cancelar</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function responseItemHtml(r, apts) {
+  const apt = apts.find(a => a.id === r.appointment?.reference?.replace('Appointment/', ''));
+  return `<div class="apt-item">
+    <div class="apt-date-block" style="background:var(--md-sys-color-secondary-container)">
+      <span class="material-icons" style="color:var(--md-sys-color-secondary);font-size:36px">check_circle</span>
+    </div>
+    <div class="apt-body">
+      <div class="apt-service">AppointmentResponse · <span class="fhir-id">${r.id}</span></div>
+      <div class="apt-meta">
+        <div class="apt-meta-item"><span class="material-icons" style="font-size:14px">event</span>Cita: <span class="fhir-id">${r.appointment?.reference}</span></div>
+        <div class="apt-meta-item"><span class="material-icons" style="font-size:14px">schedule</span>${formatDateTime(r.start)}</div>
+      </div>
+      <div class="text-sm mt-md" style="margin-top:8px">${r.comment || ''}</div>
+      <div style="margin-top:8px"><span class="badge badge-booked">${r.participantStatus}</span> ${apt ? `<span class="badge ${apt.status === 'cancelled' ? 'badge-cancelled' : 'badge-booked'}" style="margin-left:4px">${apt.status}</span>` : ''}</div>
+    </div>
+    <div class="apt-actions"><button class="btn btn-outlined btn-sm" onclick="viewResponse('${apt?.id || ''}')"><span class="material-icons" style="font-size:16px">visibility</span></button></div>
+  </div>`;
+}
+
+function emptyState(icon, msg, action) {
+  return `<div style="text-align:center;padding:60px 20px;color:var(--md-sys-color-on-surface-variant)">
+    <span class="material-icons" style="font-size:56px;opacity:.3">${icon}</span>
+    <div style="margin-top:12px;font-size:16px">${msg}</div>
+    ${action ? `<div style="margin-top:16px">${action}</div>` : ''}
+  </div>`;
+}
+
+function viewResponse(aptId) {
+  const r = getResources('AppointmentResponse').find(r => r.appointment?.reference === `Appointment/${aptId}`);
+  if (!r) { showToast('No hay AppointmentResponse para esta cita', 'warning'); return; }
+  document.getElementById('response-modal-body').innerHTML = `
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">ID del recurso</label><div class="fhir-id">${r.id}</div></div>
+      <div class="form-group"><label class="form-label">Cita referenciada</label><div class="fhir-id">${r.appointment?.reference}</div></div>
+      <div class="form-group"><label class="form-label">Inicio confirmado</label><div class="fw-600">${formatDateTime(r.start)}</div></div>
+      <div class="form-group"><label class="form-label">Fin confirmado</label><div class="fw-600">${formatDateTime(r.end)}</div></div>
+      <div class="form-group"><label class="form-label">Estado de participación</label><span class="badge badge-booked">${r.participantStatus}</span></div>
+      <div class="form-group"><label class="form-label">Participante (Actor)</label><div>${r.actor?.display}</div></div>
+      <div class="form-group full-width"><label class="form-label">Mensaje / Instrucciones</label><div style="background:var(--md-sys-color-primary-container);border-radius:12px;padding:14px;font-size:14px">${r.comment || '-'}</div></div>
+    </div>`;
+  openModal('response-modal');
+}
+
+function openMyCancelModal(id) {
+  myCancelAptId = id;
+  const apt = getResource('Appointment', id);
+  const d = apt?.start ? new Date(apt.start) : null;
+  document.getElementById('my-cancel-apt-desc').textContent = `${apt?.serviceType?.[0]?.text} · ${d ? formatDateTime(apt.start) : '-'}`;
+  document.getElementById('my-cancel-reason-text').value = '';
+  openModal('cancel-my-apt-modal');
+}
+
+function confirmMyCancel() {
+  const reasonText = document.getElementById('my-cancel-reason-text').value.trim();
+  const reasonVal = document.getElementById('my-cancel-reason-code').value.split('|');
+  const apt = getResource('Appointment', myCancelAptId);
+  if (!apt) return;
+
+  apt.status = 'cancelled';
+  apt.cancelationReason = {
+    coding: [{ system: 'http://terminology.hl7.org/CodeSystem/appointment-cancellation-reason', code: reasonVal[0], display: reasonVal[1] }],
+    text: reasonText || reasonVal[1]
+  };
+  updateResource('Appointment', myCancelAptId, apt);
+
+  const slotRef = apt.slot?.[0]?.reference?.replace('Slot/', '');
+  if (slotRef) { const slot = getResource('Slot', slotRef); if (slot) { slot.status = 'free'; updateResource('Slot', slotRef, slot); } }
+
+  showToast('Tu cita ha sido cancelada correctamente', 'warning');
+  closeModal('cancel-my-apt-modal');
+  const myPat = getResource('Patient', myPatientId);
+  if (myPat) { renderPatientStats(myPat); renderAllTabs(myPat); }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const idx = ['proximas','historial','canceladas','respuestas'].indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+function formatTime(dt) {
+  if (!dt) return '';
+  try { return new Date(dt).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}); } catch(e) { return dt; }
+}
+</script>
+</body>
+</html>
