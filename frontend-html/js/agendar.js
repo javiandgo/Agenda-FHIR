@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadInitialData() {
-  const rolesBundle = await fetch(`${API}/PractitionerRole`).then(r => r.json());
+  const rolesBundle = await fetch(`${API}/PractitionerRole`, {
+    headers: { 'Accept': 'application/fhir+json' }
+  }).then(r => r.json());
   const entries = rolesBundle.entry || [];
 
   practitionerRoles = entries.map(e => {
@@ -50,7 +52,9 @@ async function loadInitialData() {
     return r;
   });
 
-  const slotsBundle = await fetch(`${API}/Slot?status=free`).then(r => r.json());
+  const slotsBundle = await fetch(`${API}/Slot?status=free`, {
+    headers: { 'Accept': 'application/fhir+json' }
+  }).then(r => r.json());
   allSlots = (slotsBundle.entry || []).map(e => e.resource);
 
   updateSpecialtyCards();
@@ -375,25 +379,37 @@ async function bookAppointment() {
 
   try {
     showLoading(true);
-    const resp = await fetch(`${API}/Appointment/$book`, {
+
+    const aptResp = await fetch(`${API}/Appointment`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/fhir+json', 'Accept': 'application/fhir+json' },
       body: JSON.stringify(body)
     });
 
-    if (!resp.ok) {
-      const err = await resp.text();
+    if (!aptResp.ok) {
+      const err = await aptResp.text();
       console.error('Booking error:', err);
       alert('Error al agendar la cita. Por favor intenta de nuevo.');
       showLoading(false);
       return;
     }
 
-    const result = await resp.json();
-    let aptId = result.id || '';
-    if (!aptId && result.resourceType === 'Bundle') {
-      const aptEntry = (result.entry || []).find(e => e.resource?.resourceType === 'Appointment');
-      if (aptEntry) aptId = aptEntry.resource.id;
+    const appointment = await aptResp.json();
+    const aptId = appointment.id;
+
+    if (selectedData.slotId) {
+      const slotResp = await fetch(`${API}/Slot/${selectedData.slotId}`, {
+        headers: { 'Accept': 'application/fhir+json' }
+      });
+      if (slotResp.ok) {
+        const slot = await slotResp.json();
+        slot.status = 'busy';
+        await fetch(`${API}/Slot/${selectedData.slotId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/fhir+json' },
+          body: JSON.stringify(slot)
+        });
+      }
     }
 
     const params = new URLSearchParams({

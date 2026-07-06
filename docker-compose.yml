@@ -1,0 +1,43 @@
+services:
+  hapi-fhir:
+    image: hapiproject/hapi:latest
+    container_name: hapi-fhir-server
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/hapi"
+      SPRING_DATASOURCE_USERNAME: hapi
+      SPRING_DATASOURCE_PASSWORD: hapi
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+      HIBERNATE_DIALECT: "ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      hapi.fhir.allow_contains_searches: "true"
+      hapi.fhir.allow_external_references: "true"
+      hapi.fhir.fhir_version: R4
+      hapi.fhir.cors_enabled: "true"
+      hapi.fhir.cors_allowed_origins: "*"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: hapi-fhir-db
+    environment:
+      POSTGRES_DB: hapi
+      POSTGRES_USER: hapi
+      POSTGRES_PASSWORD: hapi
+    ports:
+      - "5432:5432"
+    volumes:
+      - hapi-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hapi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  hapi-pg-data:

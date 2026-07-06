@@ -151,7 +151,10 @@
 
 <div class="toast-container"></div>
 
+<script src="js/fhir-client.js"></script>
 <script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 function toast(icon, title, text) {
   try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
