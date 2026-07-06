@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+<script src="js/sweetalert2.min.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -22,7 +23,9 @@
       <a class="nav-item active" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
       <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
@@ -165,22 +168,31 @@
   </div>
 </div>
 
-<!-- Modal eliminar -->
-<div class="modal-overlay hidden" id="delete-pat-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar Patient</div><button class="close-btn" onclick="closeModal('delete-pat-modal')"><span class="material-icons">close</span></button></div>
-    <div class="modal-body"><p>¿Eliminar este paciente? Esta acción es irreversible.</p><p class="text-sm text-muted mt-md">Recurso: <span class="fhir-id" id="delete-pat-id">-</span></p></div>
-    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-pat-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeletePat()"><span class="material-icons">delete</span> Eliminar</button></div>
-  </div>
-</div>
+
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['admin']);
-if (session) { renderSidebarUser(session); renderPats(); if (new URLSearchParams(location.search).get('new')) openPatModal(); }
+if (session) { renderSidebarUser(session);
+  function initPage() {
+    renderPats(); if (new URLSearchParams(location.search).get('new')) openPatModal();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
+}
 
-let editingPatId = null, deletePatId = null;
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+let editingPatId = null;
 
 function renderPats(filter = '') {
   const all = getResources('Patient');
@@ -247,7 +259,7 @@ function savePat() {
   const id = document.getElementById('pat-id').value.trim().replace(/\s+/g, '-');
   const given1 = document.getElementById('pat-given1').value.trim();
   const family = document.getElementById('pat-family').value.trim();
-  if (!id || !given1 || !family) { showToast('ID, nombre y apellido son obligatorios', 'error'); return; }
+  if (!id || !given1 || !family) { toast('error', 'Error', 'ID, nombre y apellido son obligatorios'); return; }
 
   const given = [given1];
   const given2 = document.getElementById('pat-given2').value.trim();
@@ -271,13 +283,13 @@ function savePat() {
     address: [{ line: [document.getElementById('pat-address').value.trim()], city: document.getElementById('pat-city').value.trim(), country: 'CO' }]
   };
 
-  if (editingPatId) { updateResource('Patient', editingPatId, pat); showToast('Patient actualizado', 'success'); }
+  if (editingPatId) { updateResource('Patient', editingPatId, pat); closeModal('pat-modal'); toast('success', 'Éxito', 'Patient actualizado'); }
   else {
-    if (getResource('Patient', id)) { showToast('Ya existe un Patient con ese ID', 'error'); return; }
+    if (getResource('Patient', id)) { toast('error', 'Error', 'Ya existe un Patient con ese ID'); return; }
     createResource('Patient', pat);
-    showToast('Patient creado exitosamente', 'success');
+    closeModal('pat-modal');
+    toast('success', 'Éxito', 'Patient creado exitosamente');
   }
-  closeModal('pat-modal');
   renderPats();
 }
 
@@ -316,8 +328,7 @@ function viewPat(id) {
   openModal('view-pat-modal');
 }
 
-function openDeletePat(id) { deletePatId = id; document.getElementById('delete-pat-id').textContent = id; openModal('delete-pat-modal'); }
-function confirmDeletePat() { deleteResource('Patient', deletePatId); showToast('Patient eliminado', 'warning'); closeModal('delete-pat-modal'); renderPats(); }
+function openDeletePat(id) { try { Swal.fire({ title: 'Eliminar Patient', text: '¿Eliminar este paciente? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Patient', id); toast('warning', 'Atención', 'Patient eliminado'); renderPats(); } }); } catch(e) { if(confirm('¿Eliminar este paciente? Esta acción es irreversible.')) { deleteResource('Patient', id); renderPats(); } } }
 </script>
 </body>
 </html>

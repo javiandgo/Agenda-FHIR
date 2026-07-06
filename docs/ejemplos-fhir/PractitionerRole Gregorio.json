@@ -1,0 +1,29 @@
+{
+    "resourceType": "PractitionerRole",
+    "id": "role-casas",
+    "meta": { "versionId": "1", "lastUpdated": "2026-04-20T10:00:00Z" },
+    "identifier": [{ "system": "urn:co:acme:practitioner-role", "value": "ROLE-CASAS-001" }],
+    "active": true,
+    "period": { "start": "2020-01-01" },
+    "practitioner": { "reference": "Practitioner/prac-casas", "display": "Dr. Gregorio Casas" },
+    "organization": { "reference": "Organization/acme-salud", "display": "ACME Salud" },
+    "code": [
+        {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "309343006", "display": "Physician" }],
+            "text": "Médico Especialista"
+        }
+    ],
+    "specialty": [
+        {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "394537008", "display": "Pediatrics" }],
+            "text": "Pediatría"
+        }
+    ],
+    "location": [{ "reference": "Location/loc-norte", "display": "Clínica Norte" }],
+    "healthcareService": [{ "reference": "HealthcareService/hs-norte", "display": "Consulta Externa - Clínica Norte" }],
+    "telecom": [{ "system": "phone", "value": "+57 300 1234567", "use": "mobile" }],
+    "availableTime": [
+        { "daysOfWeek": ["mon","wed","fri"], "availableStartTime": "07:00:00", "availableEndTime": "13:00:00" },
+        { "daysOfWeek": ["tue","thu"], "availableStartTime": "14:00:00", "availableEndTime": "18:00:00" }
+    ]
+}

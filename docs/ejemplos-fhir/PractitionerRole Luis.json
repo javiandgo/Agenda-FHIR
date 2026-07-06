@@ -1,0 +1,17 @@
+{
+    "resourceType": "PractitionerRole",
+    "id": "role-chavez",
+    "meta": { "versionId": "1", "lastUpdated": "2026-04-20T10:00:00Z" },
+    "active": true,
+    "period": { "start": "2019-06-01" },
+    "practitioner": { "reference": "Practitioner/prac-chavez", "display": "Dr. Luis Manuel Chávez" },
+    "organization": { "reference": "Organization/acme-salud", "display": "ACME Salud" },
+    "code": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "309343006", "display": "Physician" }], "text": "Médico Especialista" }],
+    "specialty": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "394810000", "display": "Nephrology" }], "text": "Nefrología" }],
+    "location": [{ "reference": "Location/loc-centro", "display": "Clínica Centro" }],
+    "healthcareService": [{ "reference": "HealthcareService/hs-centro", "display": "Consulta Externa - Clínica Centro" }],
+    "telecom": [{ "system": "phone", "value": "+57 301 3456789", "use": "mobile" }],
+    "availableTime": [
+        { "daysOfWeek": ["mon","tue","wed","thu","fri"], "availableStartTime": "07:00:00", "availableEndTime": "15:00:00" }
+    ]
+}

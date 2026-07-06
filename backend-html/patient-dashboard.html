@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+<script src="js/sweetalert2.min.js"></script>
   <style>
     .patient-hero {
       background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004ba0 100%);
@@ -95,6 +96,8 @@
       <div class="nav-section-title">Mis datos</div>
       <a class="nav-item" id="nav-mis-citas" href="#"><span class="material-icons">event</span> Mis Citas</a>
       <a class="nav-item" id="nav-mi-cobertura" href="#"><span class="material-icons">health_and_safety</span> Mi Cobertura</a>
+      <div class="nav-section-title">Herramientas</div>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -201,20 +204,34 @@
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['patient']);
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
 let myPatientId = null, myCancelAptId = null;
 
 if (session) {
   renderSidebarUser(session);
-  const patients = getResources('Patient');
-  const myPat = patients.find(p => p.id === session.patientId) || patients[0];
-  if (myPat) {
-    myPatientId = myPat.id;
-    renderPatientHero(myPat);
-    renderCoverageBanner(myPat);
-    renderPatientStats(myPat);
-    renderAllTabs(myPat);
+  function initPage() {
+    const patients = getResources('Patient');
+    const myPat = patients.find(p => p.id === session.patientId) || patients[0];
+    if (myPat) {
+      myPatientId = myPat.id;
+      renderPatientHero(myPat);
+      renderCoverageBanner(myPat);
+      renderPatientStats(myPat);
+      renderAllTabs(myPat);
+    }
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
   }
 }
 
@@ -355,7 +372,7 @@ function emptyState(icon, msg, action) {
 
 function viewResponse(aptId) {
   const r = getResources('AppointmentResponse').find(r => r.appointment?.reference === `Appointment/${aptId}`);
-  if (!r) { showToast('No hay AppointmentResponse para esta cita', 'warning'); return; }
+  if (!r) { toast('warning', 'Atención', 'No hay AppointmentResponse para esta cita'); return; }
   document.getElementById('response-modal-body').innerHTML = `
     <div class="form-grid">
       <div class="form-group"><label class="form-label">ID del recurso</label><div class="fhir-id">${r.id}</div></div>
@@ -394,8 +411,8 @@ function confirmMyCancel() {
   const slotRef = apt.slot?.[0]?.reference?.replace('Slot/', '');
   if (slotRef) { const slot = getResource('Slot', slotRef); if (slot) { slot.status = 'free'; updateResource('Slot', slotRef, slot); } }
 
-  showToast('Tu cita ha sido cancelada correctamente', 'warning');
   closeModal('cancel-my-apt-modal');
+  toast('warning', 'Atención', 'Tu cita ha sido cancelada correctamente');
   const myPat = getResource('Patient', myPatientId);
   if (myPat) { renderPatientStats(myPat); renderAllTabs(myPat); }
 }

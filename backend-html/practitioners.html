@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+<script src="js/sweetalert2.min.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -22,7 +23,9 @@
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item active" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
       <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
@@ -270,22 +273,31 @@
   </div>
 </div>
 
-<!-- Modal eliminar -->
-<div class="modal-overlay hidden" id="delete-prac-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar</div><button class="close-btn" onclick="closeModal('delete-prac-modal')"><span class="material-icons">close</span></button></div>
-    <div class="modal-body"><p>¿Eliminar este recurso? Esta acción es irreversible.</p><p class="text-sm text-muted mt-md">ID: <span class="fhir-id" id="delete-prac-id">-</span></p></div>
-    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-prac-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeletePrac()"><span class="material-icons">delete</span> Eliminar</button></div>
-  </div>
-</div>
+
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['admin']);
-if (session) { renderSidebarUser(session); renderPracs(); renderRoles(); if (new URLSearchParams(location.search).get('new')) openPracModal(); }
+if (session) { renderSidebarUser(session);
+  function initPage() {
+    renderPracs(); renderRoles(); if (new URLSearchParams(location.search).get('new')) openPracModal();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
+}
 
-let editingPracId = null, editingRoleId = null, deletePracId = null, deletePracType = null;
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+let editingPracId = null, editingRoleId = null;
 
 function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -392,7 +404,7 @@ function savePrac() {
   const id = document.getElementById('prac-id').value.trim().replace(/\s+/g, '-');
   const given1 = document.getElementById('prac-given1').value.trim();
   const family = document.getElementById('prac-family').value.trim();
-  if (!id || !given1 || !family) { showToast('ID, nombre y apellido son obligatorios', 'error'); return; }
+  if (!id || !given1 || !family) { toast('error', 'Error', 'ID, nombre y apellido son obligatorios'); return; }
 
   const given = [given1];
   const given2 = document.getElementById('prac-given2').value.trim();
@@ -422,13 +434,13 @@ function savePrac() {
     qualification: [{ code: { coding: [{ system: 'http://snomed.info/sct', code: specVal[0], display: specVal[1] }], text: `Especialista en ${specVal[1]}` } }]
   };
 
-  if (editingPracId) { updateResource('Practitioner', editingPracId, prac); showToast('Practitioner actualizado', 'success'); }
+  if (editingPracId) { updateResource('Practitioner', editingPracId, prac); closeModal('prac-modal'); toast('success', 'Éxito', 'Practitioner actualizado'); }
   else {
-    if (getResource('Practitioner', id)) { showToast('Ya existe un Practitioner con ese ID', 'error'); return; }
+    if (getResource('Practitioner', id)) { toast('error', 'Error', 'Ya existe un Practitioner con ese ID'); return; }
     createResource('Practitioner', prac);
-    showToast('Practitioner creado', 'success');
+    closeModal('prac-modal');
+    toast('success', 'Éxito', 'Practitioner creado');
   }
-  closeModal('prac-modal');
   renderPracs();
 }
 
@@ -464,7 +476,7 @@ function editRole(id) { const r = getResource('PractitionerRole', id); if (r) op
 function saveRole() {
   const id = document.getElementById('role-id').value.trim().replace(/\s+/g, '-');
   const pracId = document.getElementById('role-prac').value;
-  if (!id || !pracId) { showToast('ID y médico son obligatorios', 'error'); return; }
+  if (!id || !pracId) { toast('error', 'Error', 'ID y médico son obligatorios'); return; }
 
   const prac = getResource('Practitioner', pracId);
   const orgId = document.getElementById('role-org').value;
@@ -483,23 +495,17 @@ function saveRole() {
     availableTime: [{ daysOfWeek: days, availableStartTime: document.getElementById('role-avail-start').value + ':00', availableEndTime: document.getElementById('role-avail-end').value + ':00' }]
   };
 
-  if (editingRoleId) { updateResource('PractitionerRole', editingRoleId, role); showToast('PractitionerRole actualizado', 'success'); }
+  if (editingRoleId) { updateResource('PractitionerRole', editingRoleId, role); closeModal('role-modal'); toast('success', 'Éxito', 'PractitionerRole actualizado'); }
   else {
-    if (getResource('PractitionerRole', id)) { showToast('Ya existe un PractitionerRole con ese ID', 'error'); return; }
+    if (getResource('PractitionerRole', id)) { toast('error', 'Error', 'Ya existe un PractitionerRole con ese ID'); return; }
     createResource('PractitionerRole', role);
-    showToast('PractitionerRole creado', 'success');
+    closeModal('role-modal');
+    toast('success', 'Éxito', 'PractitionerRole creado');
   }
-  closeModal('role-modal');
   renderRoles();
 }
 
-function openDeletePrac(id, type) { deletePracId = id; deletePracType = type; document.getElementById('delete-prac-id').textContent = id; openModal('delete-prac-modal'); }
-function confirmDeletePrac() {
-  deleteResource(deletePracType, deletePracId);
-  showToast('Recurso eliminado', 'warning');
-  closeModal('delete-prac-modal');
-  renderPracs(); renderRoles();
-}
+function openDeletePrac(id, type) { try { Swal.fire({ title: 'Eliminar recurso', text: '¿Eliminar este recurso? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource(type, id); toast('warning', 'Atención', 'Recurso eliminado'); renderPracs(); renderRoles(); } }); } catch(e) { if(confirm('¿Eliminar este recurso? Esta acción es irreversible.')) { deleteResource(type, id); renderPracs(); renderRoles(); } } }
 </script>
 </body>
 </html>

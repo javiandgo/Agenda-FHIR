@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+<script src="js/sweetalert2.min.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -22,7 +23,9 @@
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item active" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
       <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
@@ -121,7 +124,7 @@
           <input type="text" id="cov-plan-name" class="form-control" placeholder="Plan Contributivo Nivel A"/>
         </div>
 
-        <div class="form-section-title">Vigencia y Tiempo de Consulta</div>
+        <div class="form-section-title">Vigencia y Duración Base de Consulta</div>
         <div class="form-group">
           <label class="form-label">Inicio de vigencia</label>
           <input type="date" id="cov-start" class="form-control"/>
@@ -130,15 +133,32 @@
           <label class="form-label">Fin de vigencia</label>
           <input type="date" id="cov-end" class="form-control"/>
         </div>
-        <div class="form-group">
-          <label class="form-label">Duración consulta (minutos) <span class="required">*</span></label>
+        <div class="form-group full-width">
+          <label class="form-label">Duración base de control especializado (minutos) <span class="required">*</span></label>
           <select id="cov-duration" class="form-control">
-            <option value="15">15 min (Subsidiado)</option>
-            <option value="20" selected>20 min (Contributivo)</option>
-            <option value="30">30 min (Prepagada/Privado)</option>
-            <option value="45">45 min (Especialista Premium)</option>
+            <option value="20">20 min — Salud Cooperativa, control telemedicina especializada</option>
+            <option value="25">25 min — Salud Completa, control telemedicina general</option>
+            <option value="30" selected>30 min — Salud Cooperativa, primera vez general / Salud Completa, control general</option>
+            <option value="45">45 min — Salud Cooperativa, primera vez especializada / Salud Completa, control especializada</option>
+            <option value="60">60 min — Salud Completa, primera vez especializada</option>
           </select>
-          <span class="form-helper">Determina el Slot asignado según convenio con la aseguradora</span>
+          <span class="form-helper">La duración final se calcula automáticamente al agendar la cita según tipo de consulta + aseguradora. Este valor se usa como referencia base.</span>
+        </div>
+        <div class="form-group full-width">
+          <div class="alert alert-info" style="font-size:12px">
+            <span class="material-icons" style="font-size:16px">table_chart</span>
+            <div><strong>Tabla de tiempos según convenio ACME Salud:</strong><br/>
+            <table style="margin-top:6px;border-collapse:collapse;width:100%">
+              <tr style="background:#e3f2fd"><th style="padding:3px 8px;text-align:left;font-size:11px">Tipo de consulta</th><th style="padding:3px 8px;font-size:11px">Salud Cooperativa</th><th style="padding:3px 8px;font-size:11px">Salud Completa</th></tr>
+              <tr><td style="padding:2px 8px;font-size:11px">Primera vez med. general</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">45 min</td></tr>
+              <tr style="background:#f5f5f5"><td style="padding:2px 8px;font-size:11px">Primera vez especializada</td><td style="padding:2px 8px;font-size:11px;font-weight:600">45 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">60 min</td></tr>
+              <tr><td style="padding:2px 8px;font-size:11px">Control med. general</td><td style="padding:2px 8px;font-size:11px;font-weight:600">20 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td></tr>
+              <tr style="background:#f5f5f5"><td style="padding:2px 8px;font-size:11px">Control especializada</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">45 min</td></tr>
+              <tr><td style="padding:2px 8px;font-size:11px">Telemedicina control general</td><td style="padding:2px 8px;font-size:11px;font-weight:600">15 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">25 min</td></tr>
+              <tr style="background:#f5f5f5"><td style="padding:2px 8px;font-size:11px">Telemedicina control especializ.</td><td style="padding:2px 8px;font-size:11px;font-weight:600">20 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td></tr>
+            </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -149,22 +169,31 @@
   </div>
 </div>
 
-<!-- Modal eliminar -->
-<div class="modal-overlay hidden" id="delete-cov-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar Coverage</div><button class="close-btn" onclick="closeModal('delete-cov-modal')"><span class="material-icons">close</span></button></div>
-    <div class="modal-body"><p>¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.</p><p class="text-sm text-muted mt-md">Recurso: <span class="fhir-id" id="delete-cov-id">-</span></p></div>
-    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-cov-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeleteCov()"><span class="material-icons">delete</span> Eliminar</button></div>
-  </div>
-</div>
+
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['admin']);
-if (session) { renderSidebarUser(session); renderCovs(); if (new URLSearchParams(location.search).get('new')) openCovModal(); }
+if (session) { renderSidebarUser(session);
+  function initPage() {
+    renderCovs(); if (new URLSearchParams(location.search).get('new')) openCovModal();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
+}
 
-let editingCovId = null, deleteCovId = null;
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+let editingCovId = null;
 
 function populateSelects() {
   const patients = getResources('Patient');
@@ -241,7 +270,7 @@ function saveCov() {
   const id = document.getElementById('cov-id').value.trim().replace(/\s+/g, '-');
   const patId = document.getElementById('cov-patient').value;
   const payorId = document.getElementById('cov-payor').value;
-  if (!id || !patId || !payorId) { showToast('ID, paciente y aseguradora son obligatorios', 'error'); return; }
+  if (!id || !patId || !payorId) { toast('error', 'Error', 'ID, paciente y aseguradora son obligatorios'); return; }
 
   const pat = getResource('Patient', patId);
   const payor = getResource('Organization', payorId);
@@ -264,18 +293,17 @@ function saveCov() {
     _consultaDuracion: parseInt(document.getElementById('cov-duration').value)
   };
 
-  if (editingCovId) { updateResource('Coverage', editingCovId, cov); showToast('Coverage actualizada', 'success'); }
+  if (editingCovId) { updateResource('Coverage', editingCovId, cov); closeModal('cov-modal'); toast('success', 'Éxito', 'Coverage actualizada'); }
   else {
-    if (getResource('Coverage', id)) { showToast('Ya existe una Coverage con ese ID', 'error'); return; }
+    if (getResource('Coverage', id)) { toast('error', 'Error', 'Ya existe una Coverage con ese ID'); return; }
     createResource('Coverage', cov);
-    showToast('Coverage creada exitosamente', 'success');
+    closeModal('cov-modal');
+    toast('success', 'Éxito', 'Coverage creada exitosamente');
   }
-  closeModal('cov-modal');
   renderCovs();
 }
 
-function openDeleteCov(id) { deleteCovId = id; document.getElementById('delete-cov-id').textContent = id; openModal('delete-cov-modal'); }
-function confirmDeleteCov() { deleteResource('Coverage', deleteCovId); showToast('Coverage eliminada', 'warning'); closeModal('delete-cov-modal'); renderCovs(); }
+function openDeleteCov(id) { try { Swal.fire({ title: 'Eliminar Coverage', text: '¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Coverage', id); toast('warning', 'Atención', 'Coverage eliminada'); renderCovs(); } }); } catch(e) { if(confirm('¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.')) { deleteResource('Coverage', id); renderCovs(); } } }
 </script>
 </body>
 </html>

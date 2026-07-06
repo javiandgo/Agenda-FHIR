@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+<script src="js/sweetalert2.min.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -22,7 +23,9 @@
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
       <a class="nav-item active" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
       <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
@@ -214,22 +217,31 @@
   </div>
 </div>
 
-<!-- Modal eliminar -->
-<div class="modal-overlay hidden" id="delete-sched-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar</div><button class="close-btn" onclick="closeModal('delete-sched-modal')"><span class="material-icons">close</span></button></div>
-    <div class="modal-body"><p>¿Eliminar este recurso? Esta acción es irreversible.</p><p class="text-sm text-muted mt-md">ID: <span class="fhir-id" id="delete-sched-id">-</span></p></div>
-    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-sched-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeleteSched()"><span class="material-icons">delete</span> Eliminar</button></div>
-  </div>
-</div>
+
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['admin']);
-if (session) { renderSidebarUser(session); renderScheds(); renderSlots(); if (new URLSearchParams(location.search).get('new')) openSchedModal(); }
+if (session) { renderSidebarUser(session);
+  function initPage() {
+    renderScheds(); renderSlots(); if (new URLSearchParams(location.search).get('new')) openSchedModal();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
+}
 
-let editingSchedId = null, editingSlotId = null, deleteSchedId = null, deleteSchedType = null;
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+let editingSchedId = null, editingSlotId = null;
 
 function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -328,7 +340,7 @@ function saveSched() {
   const pracId = document.getElementById('sched-prac').value;
   const start = document.getElementById('sched-start').value;
   const end = document.getElementById('sched-end').value;
-  if (!id || !pracId || !start || !end) { showToast('ID, médico y horizonte son obligatorios', 'error'); return; }
+  if (!id || !pracId || !start || !end) { toast('error', 'Error', 'ID, médico y horizonte son obligatorios'); return; }
 
   const prac = getResource('Practitioner', pracId);
   const specVal = document.getElementById('sched-specialty').value.split('|');
@@ -343,13 +355,13 @@ function saveSched() {
     comment: document.getElementById('sched-comment').value.trim()
   };
 
-  if (editingSchedId) { updateResource('Schedule', editingSchedId, sched); showToast('Schedule actualizado', 'success'); }
+  if (editingSchedId) { updateResource('Schedule', editingSchedId, sched); closeModal('sched-modal'); toast('success', 'Éxito', 'Schedule actualizado'); }
   else {
-    if (getResource('Schedule', id)) { showToast('Ya existe un Schedule con ese ID', 'error'); return; }
+    if (getResource('Schedule', id)) { toast('error', 'Error', 'Ya existe un Schedule con ese ID'); return; }
     createResource('Schedule', sched);
-    showToast('Schedule creado', 'success');
+    closeModal('sched-modal');
+    toast('success', 'Éxito', 'Schedule creado');
   }
-  closeModal('sched-modal');
   renderScheds();
 }
 
@@ -376,7 +388,7 @@ function saveSlot() {
   const schedId = document.getElementById('slot-schedule').value;
   const start = document.getElementById('slot-start').value;
   const end = document.getElementById('slot-end').value;
-  if (!id || !schedId || !start || !end) { showToast('ID, agenda, inicio y fin son obligatorios', 'error'); return; }
+  if (!id || !schedId || !start || !end) { toast('error', 'Error', 'ID, agenda, inicio y fin son obligatorios'); return; }
 
   const sched = getResource('Schedule', schedId);
   const spec = sched?.serviceType?.[0]?.coding?.[0];
@@ -390,24 +402,18 @@ function saveSlot() {
     comment: document.getElementById('slot-comment').value.trim()
   };
 
-  if (editingSlotId) { updateResource('Slot', editingSlotId, slot); showToast('Slot actualizado', 'success'); }
+  if (editingSlotId) { updateResource('Slot', editingSlotId, slot); closeModal('slot-modal'); toast('success', 'Éxito', 'Slot actualizado'); }
   else {
-    if (getResource('Slot', id)) { showToast('Ya existe un Slot con ese ID', 'error'); return; }
+    if (getResource('Slot', id)) { toast('error', 'Error', 'Ya existe un Slot con ese ID'); return; }
     createResource('Slot', slot);
-    showToast('Slot creado', 'success');
+    closeModal('slot-modal');
+    toast('success', 'Éxito', 'Slot creado');
   }
-  closeModal('slot-modal');
   renderSlots();
   renderScheds();
 }
 
-function openDeleteSched(id, type) { deleteSchedId = id; deleteSchedType = type; document.getElementById('delete-sched-id').textContent = id; openModal('delete-sched-modal'); }
-function confirmDeleteSched() {
-  deleteResource(deleteSchedType, deleteSchedId);
-  showToast('Eliminado correctamente', 'warning');
-  closeModal('delete-sched-modal');
-  renderScheds(); renderSlots();
-}
+function openDeleteSched(id, type) { try { Swal.fire({ title: 'Eliminar recurso', text: '¿Eliminar este recurso? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource(type, id); toast('warning', 'Atención', 'Eliminado correctamente'); renderScheds(); renderSlots(); } }); } catch(e) { if(confirm('¿Eliminar este recurso? Esta acción es irreversible.')) { deleteResource(type, id); renderScheds(); renderSlots(); } } }
 </script>
 </body>
 </html>

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Consola FHIR - ACME Salud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+    <link rel="stylesheet" href="css/fhir-console.css"/>
+<script src="js/sweetalert2.min.js"></script>
+</head>
+<body>
+<div class="console-layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="material-icons brand-icon">terminal</span>
+            <div>
+                <div class="brand-name">Consola FHIR</div>
+                <div class="brand-sub">API Playground</div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="nav-item active" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR</a>
+            <a class="nav-item" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas</a>
+            <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organizations</a>
+            <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patients</a>
+            <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioners</a>
+            <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
+            <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedules</a>
+        </nav>
+    </aside>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div>
+                <div class="topbar-title">🔍 Consola FHIR</div>
+                <div class="topbar-sub">Explora y prueba cada recurso FHIR. Observa el Request y Response en crudo.</div>
+            </div>
+            <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span>
+        </header>
+
+        <div class="console-content">
+            <!-- LEFT: Request Builder -->
+            <div class="console-left">
+                <div class="section-card">
+                    <div class="section-title">
+                        <span class="material-icons">build</span> Constructor de Petición
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex:0 0 120px">
+                            <label>Método</label>
+                            <select id="http-method">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Recurso FHIR</label>
+                            <select id="resource-type">
+                                <option value="Organization">Organization</option>
+                                <option value="Location">Location</option>
+                                <option value="Practitioner">Practitioner</option>
+                                <option value="PractitionerRole">PractitionerRole</option>
+                                <option value="HealthcareService">HealthcareService</option>
+                                <option value="Schedule">Schedule</option>
+                                <option value="Slot">Slot</option>
+                                <option value="Patient">Patient</option>
+                                <option value="Coverage">Coverage</option>
+                                <option value="Appointment">Appointment</option>
+                                <option value="AppointmentResponse">AppointmentResponse</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="id-field" style="display:none">
+                            <label>ID del recurso</label>
+                            <input type="text" id="resource-id" placeholder="ej: org-acme"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="body-field" style="display:none">
+                        <label>Body (JSON)</label>
+                        <textarea id="request-body" placeholder='{
+    "resourceType": "Patient",
+    "name": [{
+        "family": "Pérez",
+        "given": ["Juan"]
+    }]
+}'></textarea>
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-top:12px">
+                        <button class="btn btn-primary" onclick="sendRequest()">
+                            <span class="material-icons" style="font-size:18px">send</span> Enviar Petición
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearForm()">
+                            <span class="material-icons" style="font-size:18px">clear</span> Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- REQUEST Display -->
+                <div class="section-card" style="flex:1">
+                    <div class="section-title">
+                        <span class="material-icons">upload_file</span> Request Enviado
+                    </div>
+                    <div id="request-display" class="empty-state">
+                        <span class="material-icons">code</span>
+                        <div>Construye una petición y haz clic en "Enviar"</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Response Display -->
+            <div class="console-right">
+                <div class="section-card">
+                    <div class="section-title">
+                        <span class="material-icons">download</span> Respuesta del Servidor
+                    </div>
+                    <div id="response-display">
+                        <div class="empty-state">
+                            <span class="material-icons">cloud_download</span>
+                            <div>La respuesta aparecerá aquí</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="history-section">
+                <div class="section-card">
+                    <div class="section-title">
+                        <span class="material-icons">history</span> Historial de Peticiones
+                        <button class="btn btn-secondary btn-sm" onclick="clearHistory()" style="margin-left:auto">
+                            <span class="material-icons" style="font-size:16px">delete_sweep</span> Limpiar
+                        </button>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <div class="empty-state" style="padding:20px">
+                            <span class="material-icons" style="font-size:24px">info</span>
+                            <div style="font-size:13px">Aún no hay peticiones en esta sesión</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/config.js"></script>
+<script>
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+const RESOURCES_WITHOUT_ID = ['metadata'];
+
+let history = [];
+
+document.getElementById('http-method').addEventListener('change', toggleFields);
+document.getElementById('resource-type').addEventListener('change', toggleFields);
+document.getElementById('resource-type').addEventListener('change', () => {
+    const type = document.getElementById('resource-type').value;
+    const body = document.getElementById('request-body');
+    body.value = JSON.stringify({
+        resourceType: type,
+        id: type.toLowerCase() + '-' + Date.now().toString(36),
+        status: 'active',
+        name: type === 'Patient' ? [{ family: 'Apellido', given: ['Nombre'] }] : undefined,
+        telecom: [{ system: 'phone', value: '+57 300 0000000' }]
+    }, null, 4);
+});
+
+function toggleFields() {
+    const method = document.getElementById('http-method').value;
+    const resource = document.getElementById('resource-type').value;
+    const idField = document.getElementById('id-field');
+    const bodyField = document.getElementById('body-field');
+
+    idField.style.display = (method === 'GET' || method === 'PUT' || method === 'DELETE') && resource !== 'metadata' ? 'block' : 'none';
+    bodyField.style.display = (method === 'POST' || method === 'PUT') ? 'block' : 'none';
+}
+
+async function sendRequest() {
+    const method = document.getElementById('http-method').value;
+    const resource = document.getElementById('resource-type').value;
+    const id = document.getElementById('resource-id').value.trim();
+    const bodyText = document.getElementById('request-body').value.trim();
+
+    let endpoint = '/' + resource;
+    if (id && (method === 'GET' || method === 'PUT' || method === 'DELETE')) {
+        endpoint += '/' + id;
+    }
+
+    let body = null;
+    if (bodyText && (method === 'POST' || method === 'PUT')) {
+        try {
+            body = JSON.parse(bodyText);
+        } catch (e) {
+            toast('error', 'Error', 'Error: JSON inválido en el body');
+            return;
+        }
+    }
+
+    if (method === 'GET' && resource === 'metadata') {
+        endpoint = '/metadata';
+    }
+
+    showRequest(method, endpoint, body);
+    showLoading();
+
+    const log = await fhirInspector.request(method, endpoint, body);
+    showResponse(log);
+    addHistory(log);
+    if (log.success) { toast('success', 'Éxito', `${method} ${endpoint} → ${log.response.status}`); } else { toast('error', 'Error', `${method} ${endpoint} → ${log.response.status}`); }
+}
+
+function showRequest(method, endpoint, body) {
+    const container = document.getElementById('request-display');
+    const url = API_BASE_URL + endpoint;
+    let curl = `curl -X ${method} "${url}"`;
+    curl += ` \\\n  -H "Content-Type: application/json"`;
+    curl += ` \\\n  -H "Accept: application/fhir+json"`;
+    if (body) {
+        curl += ` \\\n  -d '${JSON.stringify(body, null, 2)}'`;
+    }
+
+    container.innerHTML = `
+        <div class="response-panel">
+            <div class="response-header-bar">
+                <span class="response-status" style="color:#89b4fa">
+                    <span class="material-icons" style="font-size:16px">upload_file</span>
+                    ${method} ${endpoint}
+                </span>
+                <button class="inspector-copy-btn" onclick="copyText(\`${escapeJS(curl)}\`)">Copiar cURL</button>
+            </div>
+            <div class="response-body" style="color:#a6e3a1">${escapeHTML(curl)}</div>
+        </div>
+    `;
+}
+
+function showLoading() {
+    const container = document.getElementById('response-display');
+    container.innerHTML = `
+        <div class="section-card" style="text-align:center;padding:40px">
+            <div class="loading-spinner" style="width:32px;height:32px;margin:0 auto 12px"></div>
+            <div style="color:#6c7086">Enviando petición...</div>
+        </div>
+    `;
+}
+
+function showResponse(log) {
+    const container = document.getElementById('response-display');
+    const res = log.response;
+
+    let statusColor = '#a6e3a1';
+    if (res.status >= 400 && res.status < 500) statusColor = '#f9e2af';
+    else if (res.status >= 500) statusColor = '#f38ba8';
+    else if (!res.status) statusColor = '#f38ba8';
+
+    let bodyContent = '';
+    if (res.body) {
+        bodyContent = JSON.stringify(res.body, null, 2);
+    } else if (res.error) {
+        bodyContent = `ERROR: ${res.error}`;
+    } else {
+        bodyContent = '(Sin contenido)';
+    }
+
+    container.innerHTML = `
+        <div class="response-panel">
+            <div class="response-header-bar">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span class="response-status" style="color:${statusColor}">
+                        <span class="material-icons" style="font-size:16px">download</span>
+                        ${res.status} ${res.statusText || ''}
+                    </span>
+                    <span class="response-duration">${log.duration} ms</span>
+                </div>
+                <button class="inspector-copy-btn" onclick="copyText(\`${escapeJS(bodyContent)}\`)">Copiar</button>
+            </div>
+            <div class="response-body">${escapeHTML(bodyContent)}</div>
+        </div>
+    `;
+}
+
+function addHistory(log) {
+    history.unshift(log);
+    if (history.length > 50) history.pop();
+    renderHistory();
+}
+
+function renderHistory() {
+    const container = document.getElementById('history-list');
+    if (history.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding:20px"><span class="material-icons" style="font-size:24px">info</span><div style="font-size:13px">Aún no hay peticiones en esta sesión</div></div>';
+        return;
+    }
+
+    container.innerHTML = history.map((log, idx) => {
+        const req = log.request;
+        const res = log.response;
+        const endpoint = req.url.replace(API_BASE_URL, '');
+        const time = new Date(log.timestamp).toLocaleTimeString('es-CO');
+        const methodClass = 'method-' + req.method.toLowerCase();
+        let statusClass = '';
+        if (res.status >= 200 && res.status < 300) statusClass = 'status-2xx';
+        else if (res.status >= 400 && res.status < 500) statusClass = 'status-4xx';
+        else if (res.status >= 500) statusClass = 'status-5xx';
+        else statusClass = 'status-error';
+
+        return `<div class="history-item" onclick="replayHistory(${idx})">
+            <span class="inspector-method ${methodClass}">${req.method}</span>
+            <span class="inspector-status ${statusClass}">${res.status}</span>
+            <span class="endpoint">${endpoint}</span>
+            <span class="time">${time} · ${log.duration}ms</span>
+        </div>`;
+    }).join('');
+}
+
+function replayHistory(idx) {
+    const log = history[idx];
+    if (!log) return;
+    showResponse(log);
+    const curl = fhirInspector.formatRequestAsCurl(log);
+    document.getElementById('request-display').innerHTML = `
+        <div class="response-panel">
+            <div class="response-header-bar">
+                <span class="response-status" style="color:#89b4fa">
+                    <span class="material-icons" style="font-size:16px">upload_file</span>
+                    ${log.request.method} ${log.request.url.replace(API_BASE_URL, '')}
+                </span>
+            </div>
+            <div class="response-body" style="color:#a6e3a1">${escapeHTML(curl)}</div>
+        </div>
+    `;
+}
+
+function clearHistory() {
+    history = [];
+    renderHistory();
+    toast('info', 'Información', 'Historial limpiado');
+}
+
+function clearForm() {
+    document.getElementById('resource-id').value = '';
+    document.getElementById('request-body').value = '';
+    toast('info', 'Información', 'Formulario limpiado');
+}
+
+function showToast(message, type = 'info') {
+    toast(type, type === 'success' ? 'Éxito' : type === 'error' ? 'Error' : type === 'warning' ? 'Atención' : 'Información', message);
+}
+
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+}
+
+function escapeJS(str) {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+}
+
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => toast('success', 'Éxito', 'Copiado al portapapeles'));
+}
+
+toggleFields();
+</script>
+</body>
+</html>

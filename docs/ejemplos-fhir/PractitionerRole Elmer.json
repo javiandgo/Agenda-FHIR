@@ -1,0 +1,28 @@
+{
+    "resourceType": "PractitionerRole",
+    "id": "role-luna",
+    "meta": { "versionId": "1", "lastUpdated": "2026-04-20T10:00:00Z" },
+    "identifier": [{ "system": "urn:co:acme:practitioner-role", "value": "ROLE-LUNA-001" }],
+    "active": true,
+    "period": { "start": "2021-03-01" },
+    "practitioner": { "reference": "Practitioner/prac-luna", "display": "Dr. Elmer Luna" },
+    "organization": { "reference": "Organization/acme-salud", "display": "ACME Salud" },
+    "code": [
+        {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "309343006", "display": "Physician" }],
+            "text": "Médico Especialista"
+        }
+    ],
+    "specialty": [
+        {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "394586005", "display": "Gynecology and obstetrics" }],
+            "text": "Gineco Obstetricia"
+        }
+    ],
+    "location": [{ "reference": "Location/loc-norte", "display": "Clínica Norte" }],
+    "healthcareService": [{ "reference": "HealthcareService/hs-norte", "display": "Consulta Externa - Clínica Norte" }],
+    "telecom": [{ "system": "phone", "value": "+57 300 2345678", "use": "mobile" }],
+    "availableTime": [
+        { "daysOfWeek": ["mon","tue","wed","thu","fri"], "availableStartTime": "08:00:00", "availableEndTime": "16:00:00" }
+    ]
+}

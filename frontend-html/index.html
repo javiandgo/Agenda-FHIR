@@ -260,6 +260,29 @@
       </div>
     </footer>
 
+    <script src="js/config.js"></script>
     <script src="js/main.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async function() {
+        const badge = document.createElement('div');
+        badge.style.cssText = 'position:fixed;top:16px;right:16px;display:flex;align-items:center;gap:6px;background:#e8f5e9;color:#2e7d32;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:1000;border:1px solid #a5d6a7;font-family:Roboto,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.1)';
+        badge.innerHTML = '<span style="font-size:14px">●</span> FHIR API: Conectando...';
+        document.body.appendChild(badge);
+
+        try {
+          const resp = await fetch(API_BASE_URL + '/metadata');
+          const data = await resp.json();
+          badge.innerHTML = '<span style="font-size:14px;color:#2e7d32">●</span> FHIR API: Conectado';
+          badge.style.background = '#e8f5e9';
+          badge.style.color = '#2e7d32';
+          badge.style.borderColor = '#a5d6a7';
+        } catch (e) {
+          badge.innerHTML = '<span style="font-size:14px;color:#c62828">●</span> FHIR API: Offline (usando demo local)';
+          badge.style.background = '#ffebee';
+          badge.style.color = '#c62828';
+          badge.style.borderColor = '#ef9a9a';
+        }
+      });
+    </script>
   </body>
 </html>

@@ -1,0 +1,17 @@
+{
+    "resourceType": "PractitionerRole",
+    "id": "role-silva",
+    "meta": { "versionId": "1", "lastUpdated": "2026-04-20T10:00:00Z" },
+    "active": true,
+    "period": { "start": "2022-02-01" },
+    "practitioner": { "reference": "Practitioner/prac-silva", "display": "Dr. Alvaro Silva" },
+    "organization": { "reference": "Organization/acme-salud", "display": "ACME Salud" },
+    "code": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "309343006", "display": "Physician" }], "text": "Médico Especialista" }],
+    "specialty": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "394582007", "display": "Dermatology" }], "text": "Gastroenterología" }],
+    "location": [{ "reference": "Location/loc-centro", "display": "Clínica Centro" }],
+    "healthcareService": [{ "reference": "HealthcareService/hs-centro", "display": "Consulta Externa - Clínica Centro" }],
+    "telecom": [{ "system": "phone", "value": "+57 302 4567890", "use": "mobile" }],
+    "availableTime": [
+        { "daysOfWeek": ["mon","wed","fri"], "availableStartTime": "08:00:00", "availableEndTime": "18:00:00" }
+    ]
+}

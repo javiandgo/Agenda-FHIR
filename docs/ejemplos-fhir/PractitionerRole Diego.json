@@ -1,0 +1,18 @@
+{
+    "resourceType": "PractitionerRole",
+    "id": "role-narvaez",
+    "meta": { "versionId": "1", "lastUpdated": "2026-04-20T10:00:00Z" },
+    "active": true,
+    "period": { "start": "2018-09-01" },
+    "practitioner": { "reference": "Practitioner/prac-narvaez", "display": "Dr. Diego Narvaez" },
+    "organization": { "reference": "Organization/acme-salud", "display": "ACME Salud" },
+    "code": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "309343006", "display": "Physician" }], "text": "Médico Especialista" }],
+    "specialty": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "394593009", "display": "Oncology" }], "text": "Oncología" }],
+    "location": [{ "reference": "Location/loc-sur", "display": "Clínica Sur" }],
+    "healthcareService": [{ "reference": "HealthcareService/hs-sur", "display": "Consulta Externa - Clínica Sur" }],
+    "telecom": [{ "system": "phone", "value": "+57 303 5678901", "use": "mobile" }],
+    "availableTime": [
+        { "daysOfWeek": ["tue","thu"], "availableStartTime": "08:00:00", "availableEndTime": "16:00:00" },
+        { "daysOfWeek": ["fri"], "availableStartTime": "07:00:00", "availableEndTime": "12:00:00" }
+    ]
+}

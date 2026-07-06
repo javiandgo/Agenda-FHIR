@@ -338,39 +338,75 @@
       </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="js/config.js"></script>
+      <script src="js/main.js"></script>
     <script>
-      // Generar número de confirmación aleatorio
-      function generateConfirmationNumber() {
-        const year = new Date().getFullYear();
-        const random = Math.floor(Math.random() * 90000) + 10000;
-        return `ACM-${year}-${random}`;
-      }
+      const doctorNames = { casas: 'Dr. Gregorio Casas', luna: 'Dr. Elmer Luna', chavez: 'Dr. Luis Chávez', silva: 'Dr. Alvaro Silva', narvaez: 'Dr. Diego Narváez', fonseca: 'Dr. Alonso Fonseca' };
+      const specialtyNames = { pediatria: 'Pediatría', obstetricia: 'Ginecología y Obstetricia', cardiologia: 'Cardiología', nefrologia: 'Nefrología', oncologia: 'Oncología', gastroenterologia: 'Gastroenterología' };
 
-      document.addEventListener("DOMContentLoaded", function () {
-        // Simular descarga de PDF
-        const downloadBtn = document.querySelector("md-filled-button");
-        downloadBtn.addEventListener("click", () => {
-          alert("Función de descarga PDF en desarrollo.\n\nEn producción, esto generará un PDF con los detalles de la cita.");
-        });
+      document.addEventListener('DOMContentLoaded', async () => {
+        const params = new URLSearchParams(window.location.search);
+        const aptId = params.get('id');
+        let displayDoctor = 'Asignado';
+        let displaySpecialty = 'Medicina General';
+        let formattedDate = 'Pendiente';
+        let displayTime = '';
 
-        // Simular agregar a calendario
-        const calendarBtn = document.querySelector("md-outlined-button");
-        calendarBtn.addEventListener("click", () => {
-          // En producción, esto generaría un archivo .ics
-          const event = {
-            title: "Cita Médica - Dr. Gregorio Casas",
-            description: "Pediatría - Primera vez",
-            location: "Clínica Norte - Carrera 7 #100-50, Bogotá",
-            start: "2026-04-28T09:00:00",
-            end: "2026-04-28T09:30:00",
-          };
+        if (aptId) {
+          try {
+            const resp = await fetch(`${API_BASE_URL}/Appointment/${aptId}`);
+            if (resp.ok) {
+              const apt = await resp.json();
+              const start = apt.start || '';
+              const datePart = start.split('T')[0];
+              const timePart = start.split('T')[1]?.substring(0, 5) || '';
+              displayTime = timePart;
+              if (datePart) {
+                const d = new Date(datePart + 'T12:00:00');
+                formattedDate = d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              }
+              const pracRef = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'))?.actor?.reference || '';
+              const pracId = pracRef.replace('Practitioner/', '');
+              displayDoctor = doctorNames[pracId] || pracId || 'Asignado';
+              const svcType = apt.serviceType?.[0]?.coding?.[0]?.code || '';
+              displaySpecialty = specialtyNames[svcType] || svcType || 'Medicina General';
 
-          console.log("Evento de calendario:", event);
-          alert("Función de calendario en desarrollo.\n\nEn producción, esto agregará el evento a tu calendario.");
-        });
+              document.querySelector('.confirmation-number h2').textContent = `ACM-2026-${String(aptId).replace(/[^0-9]/g, '').substring(0,5).padStart(5, '0')}`;
+            }
+          } catch(e) {
+            console.warn('Could not fetch appointment, using URL params fallback', e);
+          }
+        }
 
-        console.log("Página de confirmación cargada");
+        if (!displayTime) {
+          const doctor = params.get('doctor') || 'Asignado';
+          const specialty = params.get('specialty') || 'Medicina General';
+          const date = params.get('date') || '';
+          const time = params.get('time') || '';
+          displayDoctor = doctorNames[doctor] || doctor;
+          displaySpecialty = specialtyNames[specialty] || specialty;
+          displayTime = time;
+          if (date) {
+            const d = new Date(date + 'T12:00:00');
+            formattedDate = d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          }
+        }
+
+        const detailEls = document.querySelectorAll('.detail-content p');
+        if (detailEls.length >= 4) {
+          detailEls[0].textContent = formattedDate + (displayTime ? ` - ${displayTime}` : '');
+          detailEls[1].textContent = displayDoctor;
+          detailEls[2].textContent = displaySpecialty;
+        }
+
+        const downloadBtn = document.querySelector('md-filled-button');
+        if (downloadBtn) {
+          downloadBtn.addEventListener('click', () => {
+            alert(`Resumen de tu cita:\n\nEspecialidad: ${displaySpecialty}\nMédico: ${displayDoctor}\nFecha: ${formattedDate}\nHora: ${displayTime}`);
+          });
+        }
+
+        console.log('Confirmación cargada:', { aptId, displaySpecialty, displayDoctor, formattedDate, displayTime });
       });
     </script>
   </body>

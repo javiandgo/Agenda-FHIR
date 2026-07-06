@@ -33,7 +33,9 @@
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
       <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
@@ -199,37 +201,31 @@
   </div>
 </div>
 
-<!-- Modal eliminar -->
-<div class="modal-overlay hidden" id="delete-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header">
-      <div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar Organization</div>
-      <button class="close-btn" onclick="closeModal('delete-modal')"><span class="material-icons">close</span></button>
-    </div>
-    <div class="modal-body">
-      <p>¿Estás seguro de que deseas eliminar esta organización? Esta acción no se puede deshacer.</p>
-      <p class="text-sm text-muted mt-md">Recurso FHIR: <span class="fhir-id" id="delete-org-id">-</span></p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outlined" onclick="closeModal('delete-modal')">Cancelar</button>
-      <button class="btn btn-danger" onclick="confirmDelete()"><span class="material-icons">delete</span> Eliminar</button>
-    </div>
-  </div>
-</div>
+
 
 <div class="toast-container"></div>
 
+<script src="js/sweetalert2.min.js"></script>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['admin']);
 if (session) {
   renderSidebarUser(session);
-  renderOrgs();
-  if (new URLSearchParams(location.search).get('new')) openOrgModal();
+  function initPage() {
+    renderOrgs();
+    if (new URLSearchParams(location.search).get('new')) openOrgModal();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
 }
 
 let editingId = null;
-let deleteId = null;
 let allOrgs = [];
 
 function renderOrgs(filter = '') {
@@ -304,10 +300,14 @@ function editOrg(id) {
   if (org) openOrgModal(org);
 }
 
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
 function saveOrg() {
   const id = document.getElementById('org-id').value.trim().replace(/\s+/g, '-');
   const name = document.getElementById('org-name').value.trim();
-  if (!id || !name) { showToast('ID y Nombre son obligatorios', 'error'); return; }
+  if (!id || !name) { toast('error', 'Campos obligatorios', 'ID y Nombre son obligatorios'); return; }
 
   const typeCode = document.getElementById('org-type').value;
   const typeLabels = { prov: 'Healthcare Provider', ins: 'Insurance Company', govt: 'Government', edu: 'Educational Institute', other: 'Other' };
@@ -333,28 +333,40 @@ function saveOrg() {
     }]
   };
 
-  if (editingId) { updateResource('Organization', editingId, org); showToast('Organization actualizada', 'success'); }
-  else {
+  if (editingId) {
+    updateResource('Organization', editingId, org);
+    closeModal('org-modal');
+    toast('success', 'Actualizada', 'Organization actualizada correctamente');
+  } else {
     const existing = getResource('Organization', id);
-    if (existing) { showToast('Ya existe una Organization con ese ID', 'error'); return; }
+    if (existing) { toast('error', 'ID duplicado', 'Ya existe una Organization con ese ID'); return; }
     createResource('Organization', org);
-    showToast('Organization creada exitosamente', 'success');
+    closeModal('org-modal');
+    toast('success', 'Creada', 'Organization creada exitosamente');
   }
-  closeModal('org-modal');
   renderOrgs();
 }
 
 function openDelete(id) {
-  deleteId = id;
-  document.getElementById('delete-org-id').textContent = id;
-  openModal('delete-modal');
-}
-
-function confirmDelete() {
-  deleteResource('Organization', deleteId);
-  showToast('Organization eliminada', 'warning');
-  closeModal('delete-modal');
-  renderOrgs();
+  try {
+    Swal.fire({
+      icon: 'warning', title: 'Eliminar Organization',
+      text: `¿Estás seguro de eliminar ${id}? Esta acción no se puede deshacer.`,
+      showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d32f2f'
+    }).then(result => {
+      if (result.isConfirmed) {
+        deleteResource('Organization', id);
+        toast('success', 'Eliminada', 'Organization eliminada correctamente');
+        renderOrgs();
+      }
+    });
+  } catch (e) {
+    if (confirm(`¿Eliminar ${id}?`)) {
+      deleteResource('Organization', id);
+      renderOrgs();
+    }
+  }
 }
 
 function viewFHIR(id) {

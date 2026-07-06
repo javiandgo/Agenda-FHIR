@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+<script src="js/sweetalert2.min.js"></script>
   <style>
     .status-flow {
       display: flex;
@@ -85,7 +86,9 @@
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
       <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
@@ -186,22 +189,24 @@
         <div class="form-section-title">Tipo y Servicio</div>
         <div class="form-group">
           <label class="form-label">Tipo de cita</label>
-          <select id="apt-type" class="form-control">
+          <select id="apt-type" class="form-control" onchange="recalcDuration()">
             <option value="ROUTINE|Primera vez">Primera vez</option>
             <option value="FOLLOWUP|Control">Control / Seguimiento</option>
+            <option value="TELEMED_FOLLOWUP|Telemedicina Control">Telemedicina — Control</option>
+            <option value="TELEMED_ROUTINE|Telemedicina Primera vez">Telemedicina — Primera vez</option>
             <option value="EMERGENCY|Urgencia">Urgencia</option>
-            <option value="CHECKUP|Chequeo">Chequeo de rutina</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Especialidad / Servicio <span class="required">*</span></label>
-          <select id="apt-service" class="form-control" required onchange="loadPractitionersByService()">
-            <option value="394814009|Medicina General">Medicina General</option>
-            <option value="394537008|Pediatría">Pediatría</option>
-            <option value="394802001|Cardiología">Cardiología</option>
-            <option value="394583002|Dermatología">Dermatología</option>
-            <option value="394585009|Ob/Ginecología">Ob/Ginecología</option>
-            <option value="394589003|Neurología">Neurología</option>
+          <select id="apt-service" class="form-control" required onchange="loadPractitionersByService();recalcDuration()">
+            <option value="394814009|Medicina General|general">Medicina General</option>
+            <option value="394537008|Pediatría|especializada">Pediatría</option>
+            <option value="394586005|Gineco Obstetricia|especializada">Gineco Obstetricia</option>
+            <option value="394810000|Nefrología|especializada">Nefrología</option>
+            <option value="394582007|Gastroenterología|especializada">Gastroenterología</option>
+            <option value="394593009|Oncología|especializada">Oncología</option>
+            <option value="394802001|Cardiología|especializada">Cardiología</option>
           </select>
         </div>
         <div class="form-group full-width">
@@ -219,9 +224,16 @@
           <select id="apt-practitioner" class="form-control" required></select>
         </div>
 
-        <div class="form-section-title">Cobertura detectada</div>
+        <div class="form-section-title">Cobertura detectada y duración de consulta</div>
         <div class="form-group full-width" id="coverage-info-box">
           <div class="alert alert-warning"><span class="material-icons">info</span> Selecciona un paciente para ver su cobertura y el tiempo de consulta.</div>
+        </div>
+        <div class="form-group full-width" id="duration-display" style="display:none">
+          <div style="background:#e8f5e9;border-radius:10px;padding:12px 16px;font-size:13px">
+            <strong>Duración calculada según convenio:</strong>
+            <span id="duration-value" style="font-size:18px;font-weight:700;color:#2e7d32;margin:0 8px">—</span> minutos
+            <span id="duration-detail" style="color:#555;font-size:12px"></span>
+          </div>
         </div>
 
         <div class="form-section-title">Slot y Fecha/Hora</div>
@@ -231,7 +243,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Inicio de la cita <span class="required">*</span></label>
-          <input type="datetime-local" id="apt-start" class="form-control" required/>
+          <input type="datetime-local" id="apt-start" class="form-control" required onchange="recalcDuration()"/>
         </div>
         <div class="form-group">
           <label class="form-label">Fin de la cita <span class="required">*</span></label>
@@ -326,27 +338,34 @@
   </div>
 </div>
 
-<!-- Modal eliminar -->
-<div class="modal-overlay hidden" id="delete-apt-modal">
-  <div class="modal modal-sm">
-    <div class="modal-header"><div class="modal-title" style="color:var(--md-sys-color-error)"><span class="material-icons">delete</span> Eliminar Appointment</div><button class="close-btn" onclick="closeModal('delete-apt-modal')"><span class="material-icons">close</span></button></div>
-    <div class="modal-body"><p>¿Eliminar permanentemente esta cita del sistema FHIR?</p><p class="text-sm text-muted mt-md">ID: <span class="fhir-id" id="delete-apt-id">-</span></p></div>
-    <div class="modal-footer"><button class="btn btn-outlined" onclick="closeModal('delete-apt-modal')">Cancelar</button><button class="btn btn-danger" onclick="confirmDeleteApt()"><span class="material-icons">delete</span> Eliminar</button></div>
-  </div>
-</div>
+
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
 <script>
 const session = requireAuth(['admin']);
 if (session) {
   renderSidebarUser(session);
-  renderApts();
-  renderAptStats();
-  if (new URLSearchParams(location.search).get('new')) openAptModal();
+  function initPage() {
+    renderApts();
+    renderAptStats();
+    if (new URLSearchParams(location.search).get('new')) openAptModal();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
 }
 
-let editingAptId = null, cancelAptId = null, deleteAptId = null, selectedCancelCode = null, selectedCancelDisplay = null;
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+let editingAptId = null, cancelAptId = null, selectedCancelCode = null, selectedCancelDisplay = null;
 
 // ==========================================
 // Estadísticas
@@ -465,23 +484,97 @@ function openAptModal(apt = null) {
   openModal('apt-modal');
 }
 
+// Tabla de duraciones según convenio ACME Salud (minutos)
+// Filas: tipo de consulta | Columnas: [Salud Cooperativa, Salud Completa]
+const DURACION_CONVENIO = {
+  'ROUTINE':            { general: { 'ins-salud-cooperativa': 30, 'ins-salud-completa': 45 }, especializada: { 'ins-salud-cooperativa': 45, 'ins-salud-completa': 60 } },
+  'FOLLOWUP':           { general: { 'ins-salud-cooperativa': 20, 'ins-salud-completa': 30 }, especializada: { 'ins-salud-cooperativa': 30, 'ins-salud-completa': 45 } },
+  'TELEMED_ROUTINE':    { general: { 'ins-salud-cooperativa': 15, 'ins-salud-completa': 25 }, especializada: { 'ins-salud-cooperativa': 20, 'ins-salud-completa': 30 } },
+  'TELEMED_FOLLOWUP':   { general: { 'ins-salud-cooperativa': 15, 'ins-salud-completa': 25 }, especializada: { 'ins-salud-cooperativa': 20, 'ins-salud-completa': 30 } },
+};
+
+function getInsurerId(cov) {
+  const payorRef = cov?.payor?.[0]?.reference || '';
+  if (payorRef.includes('ins-salud-completa') || (cov?.payor?.[0]?.display || '').toLowerCase().includes('completa')) return 'ins-salud-completa';
+  if (payorRef.includes('ins-salud-cooperativa') || (cov?.payor?.[0]?.display || '').toLowerCase().includes('cooperativa')) return 'ins-salud-cooperativa';
+  return null;
+}
+
+function calcularDuracion(aptTypeCode, serviceCategory, insurerId) {
+  const tipoMap = DURACION_CONVENIO[aptTypeCode];
+  if (!tipoMap || !insurerId) return null;
+  const catMap = tipoMap[serviceCategory] || tipoMap['general'];
+  return catMap[insurerId] || null;
+}
+
+function recalcDuration() {
+  const patId = document.getElementById('apt-patient').value;
+  const aptTypeVal = document.getElementById('apt-type').value.split('|')[0];
+  const svcParts = document.getElementById('apt-service').value.split('|');
+  const serviceCategory = svcParts[2] || 'general';
+  const cov = getResources('Coverage').find(c => c.beneficiary?.reference === `Patient/${patId}`);
+  const insurerId = getInsurerId(cov);
+  const dur = calcularDuracion(aptTypeVal, serviceCategory, insurerId);
+  const display = document.getElementById('duration-display');
+  if (dur && cov) {
+    document.getElementById('duration-value').textContent = dur;
+    const aptTypeName = document.getElementById('apt-type').options[document.getElementById('apt-type').selectedIndex].text;
+    const svcName = svcParts[1] || '';
+    document.getElementById('duration-detail').textContent = `(${aptTypeName} · ${svcName} · ${cov.payor?.[0]?.display || ''})`;
+    display.style.display = 'block';
+    // Auto-calcular end si hay start
+    const startVal = document.getElementById('apt-start').value;
+    if (startVal) {
+      const startDate = new Date(startVal);
+      const endDate = new Date(startDate.getTime() + dur * 60000);
+      document.getElementById('apt-end').value = endDate.toISOString().substring(0, 16);
+    }
+  } else {
+    display.style.display = 'none';
+  }
+}
+
 function loadCoverage() {
   const patId = document.getElementById('apt-patient').value;
   const cov = getResources('Coverage').find(c => c.beneficiary?.reference === `Patient/${patId}`);
   const box = document.getElementById('coverage-info-box');
   if (cov) {
+    const insurerId = getInsurerId(cov);
+    const insName = cov.payor?.[0]?.display || '';
     const dur = cov._consultaDuracion || 20;
-    box.innerHTML = `<div class="alert alert-success"><span class="material-icons">health_and_safety</span>
-      <div><strong>${cov.payor?.[0]?.display}</strong> · ${cov.class?.[0]?.name || cov.type?.coding?.[0]?.display || ''}<br/>
-      Tiempo de consulta según convenio: <strong>${dur} minutos</strong><br/>
-      Vigencia: ${formatDate(cov.period?.start)} – ${formatDate(cov.period?.end)}
+    const tableRows = [
+      ['Primera vez med. general',       DURACION_CONVENIO.ROUTINE?.general?.[insurerId]],
+      ['Primera vez especializada',       DURACION_CONVENIO.ROUTINE?.especializada?.[insurerId]],
+      ['Control med. general',            DURACION_CONVENIO.FOLLOWUP?.general?.[insurerId]],
+      ['Control especializada',           DURACION_CONVENIO.FOLLOWUP?.especializada?.[insurerId]],
+      ['Telemedicina control general',    DURACION_CONVENIO.TELEMED_FOLLOWUP?.general?.[insurerId]],
+      ['Telemedicina control especializ.',DURACION_CONVENIO.TELEMED_FOLLOWUP?.especializada?.[insurerId]],
+    ].map(([label, min]) => min ? `<tr><td style="padding:2px 8px;font-size:12px">${label}</td><td style="padding:2px 8px;font-size:12px;font-weight:700;color:#1565c0">${min} min</td></tr>` : '').join('');
+    box.innerHTML = `<div class="alert alert-success" style="align-items:flex-start"><span class="material-icons">health_and_safety</span>
+      <div style="flex:1"><strong>${insName}</strong> · ${cov.class?.[0]?.name || cov.type?.coding?.[0]?.display || ''}
+      <br/>Vigencia: ${formatDate(cov.period?.start)} – ${formatDate(cov.period?.end)}
+      ${insurerId ? `<br/><br/><strong>Tiempos de consulta según convenio:</strong><table style="margin-top:4px">${tableRows}</table>` : ''}
       </div></div>`;
+    recalcDuration();
   } else {
     box.innerHTML = `<div class="alert alert-warning"><span class="material-icons">warning</span> Este paciente no tiene cobertura registrada. <a href="coverage.html" class="text-primary">Registrar Coverage</a></div>`;
+    document.getElementById('duration-display').style.display = 'none';
   }
 }
 
-function loadPractitionersByService() {}
+function loadPractitionersByService() {
+  const svcParts = document.getElementById('apt-service').value.split('|');
+  const svcCode = svcParts[0];
+  const pracs = getResources('Practitioner');
+  const roles = getResources('PractitionerRole');
+  const matchingPracIds = roles
+    .filter(r => r.specialty?.[0]?.coding?.[0]?.code === svcCode || svcCode === '394814009')
+    .map(r => r.practitioner?.reference?.replace('Practitioner/', ''));
+  const filtered = matchingPracIds.length ? pracs.filter(p => matchingPracIds.includes(p.id)) : pracs;
+  const sel = document.getElementById('apt-practitioner');
+  sel.innerHTML = filtered.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+  if (!filtered.length) sel.innerHTML = pracs.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+}
 
 function saveApt() {
   const id = document.getElementById('apt-id').value.trim().replace(/\s+/g, '-');
@@ -489,13 +582,26 @@ function saveApt() {
   const pracId = document.getElementById('apt-practitioner').value;
   const start = document.getElementById('apt-start').value;
   const end = document.getElementById('apt-end').value;
-  if (!id || !patId || !pracId || !start || !end) { showToast('ID, paciente, médico, inicio y fin son obligatorios', 'error'); return; }
+  if (!id || !patId || !pracId || !start || !end) { toast('error', 'Error', 'ID, paciente, médico, inicio y fin son obligatorios'); return; }
 
   const pat = getResource('Patient', patId);
   const prac = getResource('Practitioner', pracId);
   const slotId = document.getElementById('apt-slot').value;
   const svcVal = document.getElementById('apt-service').value.split('|');
   const typeVal = document.getElementById('apt-type').value.split('|');
+
+  const aptTypeCode = typeVal[0];
+  const svcCategory = svcVal[2] || 'general';
+  const cov = getResources('Coverage').find(c => c.beneficiary?.reference === `Patient/${patId}`);
+  const insurerId = getInsurerId(cov);
+  const durMin = calcularDuracion(aptTypeCode, svcCategory, insurerId) || Math.round((new Date(end) - new Date(start)) / 60000) || 20;
+
+  // Buscar HealthcareService del Practitioner via PractitionerRole
+  const role = getResources('PractitionerRole').find(r => r.practitioner?.reference === `Practitioner/${pracId}`);
+  const hsRef = role?.healthcareService?.[0]?.reference || '';
+  const locRef = role?.location?.[0]?.reference || '';
+  const hsDisplay = role?.healthcareService?.[0]?.display || '';
+  const locDisplay = role?.location?.[0]?.display || '';
 
   const apt = {
     resourceType: 'Appointment', id,
@@ -508,42 +614,57 @@ function saveApt() {
     slot: slotId ? [{ reference: `Slot/${slotId}` }] : [],
     start: new Date(start).toISOString(),
     end: new Date(end).toISOString(),
+    minutesDuration: durMin,
     created: new Date().toISOString(),
-    comment: document.getElementById('apt-comment').value.trim(),
+    comment: document.getElementById('apt-comment').value.trim() || (cov ? `Cobertura: ${cov.payor?.[0]?.display} — Duración: ${durMin} min.` : ''),
     participant: [
       { actor: { reference: `Patient/${patId}`, display: getPatientName(pat) }, status: 'accepted', required: 'required' },
-      { actor: { reference: `Practitioner/${pracId}`, display: getPatientName(prac) }, status: 'accepted', required: 'required' }
+      { actor: { reference: `Practitioner/${pracId}`, display: getPatientName(prac) }, status: 'accepted', required: 'required' },
+      ...(locRef ? [{ actor: { reference: locRef, display: locDisplay }, status: 'accepted', required: 'required' }] : []),
+      ...(hsRef  ? [{ actor: { reference: hsRef,  display: hsDisplay  }, status: 'accepted', required: 'required' }] : []),
     ]
   };
 
   if (editingAptId) {
     updateResource('Appointment', editingAptId, apt);
-    showToast('Appointment actualizado', 'success');
+    closeModal('apt-modal');
+    toast('success', 'Éxito', 'Appointment actualizado');
   } else {
-    if (getResource('Appointment', id)) { showToast('Ya existe un Appointment con ese ID', 'error'); return; }
+    if (getResource('Appointment', id)) { toast('error', 'Error', 'Ya existe un Appointment con ese ID'); return; }
     createResource('Appointment', apt);
     // Marcar slot como busy
     if (slotId) { const slot = getResource('Slot', slotId); if (slot) { slot.status = 'busy'; updateResource('Slot', slotId, slot); } }
     // Generar AppointmentResponse automáticamente
     generateAppointmentResponse(apt, pat, prac);
-    showToast('Cita agendada exitosamente. AppointmentResponse generada.', 'success');
+    closeModal('apt-modal');
+    toast('success', 'Éxito', 'Cita agendada exitosamente. AppointmentResponse generada.');
   }
-  closeModal('apt-modal');
   renderApts();
   renderAptStats();
 }
 
 function generateAppointmentResponse(apt, pat, prac) {
+  const locPart = apt.participant?.find(p => p.actor?.reference?.startsWith('Location/'));
+  const hsPart  = apt.participant?.find(p => p.actor?.reference?.startsWith('HealthcareService/'));
   const apr = {
     resourceType: 'AppointmentResponse',
     id: `apr-${apt.id}`,
-    appointment: { reference: `Appointment/${apt.id}` },
+    identifier: [{ system: 'urn:co:acme:appointment-response', value: `APR-${apt.identifier?.[0]?.value || apt.id}` }],
+    appointment: { reference: `Appointment/${apt.id}`, display: `${apt.serviceType?.[0]?.text} — ${getPatientName(pat)}` },
     start: apt.start,
     end: apt.end,
-    participantType: [{ coding: [{ code: 'patient', display: 'Paciente' }] }],
+    participantType: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType', code: 'PART', display: 'Participation' }], text: 'Paciente' }],
     actor: { reference: `Patient/${pat.id}`, display: getPatientName(pat) },
     participantStatus: 'accepted',
-    comment: `Cita confirmada. Servicio: ${apt.serviceType?.[0]?.text}. Médico: ${getPatientName(prac)}. ${apt.comment || 'Por favor llegar 10 minutos antes con documentos y tarjeta de aseguradora.'}`
+    comment: [
+      `Cita confirmada exitosamente.`,
+      `Servicio: ${apt.serviceType?.[0]?.text}.`,
+      `Tipo: ${apt.appointmentType?.text || apt.appointmentType?.coding?.[0]?.display || ''}.`,
+      `Médico: ${getPatientName(prac)}.`,
+      locPart ? `Sede: ${locPart.actor?.display}.` : '',
+      `Inicio: ${formatDateTime(apt.start)} — Fin: ${formatDateTime(apt.end)} (${apt.minutesDuration || ''} min).`,
+      apt.comment || 'Por favor llegar 15 minutos antes con documento de identidad y carné de la EPS.'
+    ].filter(Boolean).join(' ')
   };
   createResource('AppointmentResponse', apr);
 }
@@ -629,7 +750,7 @@ function markFulfilled(id) {
   if (!apt) return;
   apt.status = 'fulfilled';
   updateResource('Appointment', id, apt);
-  showToast('Cita marcada como atendida (fulfilled)', 'success');
+  toast('success', 'Éxito', 'Cita marcada como atendida (fulfilled)');
   closeModal('view-apt-modal');
   renderApts();
   renderAptStats();
@@ -661,8 +782,8 @@ function selectReason(el) {
 
 function confirmCancel() {
   const reasonText = document.getElementById('cancel-reason-text').value.trim();
-  if (!selectedCancelCode) { showToast('Selecciona un motivo de cancelación', 'error'); return; }
-  if (!reasonText) { showToast('Escribe el detalle del motivo', 'error'); return; }
+  if (!selectedCancelCode) { toast('error', 'Error', 'Selecciona un motivo de cancelación'); return; }
+  if (!reasonText) { toast('error', 'Error', 'Escribe el detalle del motivo'); return; }
 
   const apt = getResource('Appointment', cancelAptId);
   if (!apt) return;
@@ -685,22 +806,14 @@ function confirmCancel() {
     if (slot && slot.status === 'busy') { slot.status = 'free'; updateResource('Slot', slotRef, slot); }
   }
 
-  showToast(`Cita cancelada. Appointment.status = "cancelled". Motivo: ${selectedCancelDisplay}`, 'warning');
   closeModal('cancel-apt-modal');
+  toast('warning', 'Atención', '');
   renderApts();
   renderAptStats();
 }
 
 function editApt(id) { const a = getResource('Appointment', id); if (a) openAptModal(a); }
-function openDeleteApt(id) { deleteAptId = id; document.getElementById('delete-apt-id').textContent = id; openModal('delete-apt-modal'); }
-function confirmDeleteApt() {
-  deleteResource('Appointment', deleteAptId);
-  deleteResource('AppointmentResponse', `apr-${deleteAptId}`);
-  showToast('Appointment eliminado', 'warning');
-  closeModal('delete-apt-modal');
-  renderApts();
-  renderAptStats();
-}
+function openDeleteApt(id) { try { Swal.fire({ title: 'Eliminar Appointment', text: '¿Eliminar permanentemente esta cita del sistema FHIR?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Appointment', id); deleteResource('AppointmentResponse', `apr-${id}`); toast('warning', 'Atención', 'Appointment eliminado'); renderApts(); renderAptStats(); } }); } catch(e) { if(confirm('¿Eliminar permanentemente esta cita del sistema FHIR?')) { deleteResource('Appointment', id); deleteResource('AppointmentResponse', `apr-${id}`); renderApts(); renderAptStats(); } } }
 </script>
 </body>
 </html>

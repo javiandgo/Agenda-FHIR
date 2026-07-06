@@ -1,0 +1,56 @@
+{
+    "resourceType": "Appointment",
+    "id": "apt-002",
+    "meta": { "versionId": "2", "lastUpdated": "2026-06-25T14:15:00Z" },
+    "identifier": [{ "system": "urn:co:acme:appointment", "value": "APT-2026-001235" }],
+    "status": "cancelled",
+    "cancelationReason": {
+        "coding": [
+            {
+                "system": "http://terminology.hl7.org/CodeSystem/appointment-cancellation-reason",
+                "code": "pat",
+                "display": "Patient"
+            }
+        ],
+        "text": "El paciente no puede asistir a la cita por motivos personales. Solicita reagendamiento para la próxima semana."
+    },
+    "serviceCategory": [
+        {
+            "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/service-category", "code": "17", "display": "General Practice" }],
+            "text": "Consulta Externa"
+        }
+    ],
+    "serviceType": [
+        {
+            "coding": [{ "system": "http://snomed.info/sct", "code": "394537008", "display": "Pediatrics" }],
+            "text": "Pediatría"
+        }
+    ],
+    "appointmentType": {
+        "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/v2-0276", "code": "FOLLOWUP", "display": "A follow up visit from a previous appointment" }],
+        "text": "Control"
+    },
+    "start": "2026-07-08T09:00:00-05:00",
+    "end": "2026-07-08T09:30:00-05:00",
+    "minutesDuration": 30,
+    "slot": [{ "reference": "Slot/slot-casas-20260708-0900" }],
+    "created": "2026-06-21T11:00:00Z",
+    "comment": "Cita cancelada por el paciente. Slot liberado para asignación.",
+    "participant": [
+        {
+            "actor": { "reference": "Practitioner/prac-casas", "display": "Dr. Gregorio Casas - Pediatra" },
+            "required": "required",
+            "status": "accepted"
+        },
+        {
+            "actor": { "reference": "Patient/pat-002", "display": "Carlos Andrés Gómez" },
+            "required": "required",
+            "status": "declined"
+        },
+        {
+            "actor": { "reference": "Location/loc-norte", "display": "Clínica Norte" },
+            "required": "required",
+            "status": "accepted"
+        }
+    ]
+}
