@@ -52,8 +52,11 @@ Cada servicio especializado (HealthcareService) tiene su propia agenda (Schedule
 A su vez, cada uno de los médicos especialistas de mayor demanda (Practitioner), en su rol de empleado (PractitionerRole) de ACME Salud, tiene su propia agenda (Schedule), que se define mensualmente.
 La información de los pacientes (Patient), deberá relacionarse con la información de cobertura (Coverage), para determinar los tiempos de consulta, de acuerdo con la organización aseguradora (organization), con las cuales tiene convenios.
 Cuando el paciente solicita una cita (Appointment), a través de un canal de atención, se requiere registrar un espacio de tiempo (Slot), dentro de la agenda.
+
 Un servidor central tipo FHIR System, recibe las solicitudes de citas (Appointment), provenientes del sistema de informacion de cada canal de atención, con el fin de mantener el control de las agendas (Schedule).
+
 Una vez la cita a sido agendada, el paciente recibe una respuesta (AppointmentResponse), informando la hora de la cita (inicio y final), el servicio de salud, el médico que va a atenderlo y los comentarios necesarios.
+
 Si un paciente cancela una cita (Appointment), el estado (Appointment.status) del registro de la misma debe cambiar y registrarse el motivo de cancelación (Appointment.cancelationReason).
 
 Cada equipo deberá:

@@ -1,0 +1,37 @@
+{
+  "resourceType": "Schedule",
+  "id": "sched-nefrologia-mayo",
+  "active": true,
+  "serviceCategory": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/service-category",
+          "code": "30",
+          "display": "Specialist Medical"
+        }
+      ]
+    }
+  ],
+  "serviceType": [
+    {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "394589003",
+          "display": "Nephrology"
+        }
+      ]
+    }
+  ],
+  "actor": [
+    {
+      "reference": "PractitionerRole/role-nefrologia-centro",
+      "display": "Dr. Luis Manuel Chávez - Nefrología Centro"
+    }
+  ],
+  "planningHorizon": {
+    "start": "2024-05-01T00:00:00Z",
+    "end": "2024-05-31T23:59:59Z"
+  }
+}

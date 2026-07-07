@@ -1,0 +1,11 @@
+{
+  "resourceType": "Slot",
+  "id": "slot-nefro-001",
+  "schedule": {
+    "reference": "Schedule/sched-nefrologia-mayo"
+  },
+  "status": "free",
+  "start": "2024-05-10T09:00:00Z",
+  "end": "2024-05-10T09:45:00Z",
+  "comment": "Espacio disponible para consulta de Nefrología"
+}

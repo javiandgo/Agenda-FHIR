@@ -1,0 +1,32 @@
+{
+  "resourceType": "Location",
+  "id": "sede-centro",
+  "identifier": [
+    {
+      "system": "http://acmesalud.com/identificador-sedes",
+      "value": "1100155555-2"
+    }
+  ],
+  "status": "active",
+  "name": "ACME Salud - Sede Centro",
+  "description": "Punto de atención Centro: Medicina general, nefrología, gastroenterología",
+  "mode": "instance",
+  "address": {
+    "line": ["Carrera 10 #12-50"],
+    "city": "Bogotá",
+    "district": "Centro",
+    "country": "CO"
+  },
+  "physicalType": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/location-physical-type",
+        "code": "bu",
+        "display": "Building"
+      }
+    ]
+  },
+  "managingOrganization": {
+    "reference": "Organization/acme-salud"
+  }
+}

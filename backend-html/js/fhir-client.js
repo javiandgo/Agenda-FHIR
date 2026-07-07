@@ -28,13 +28,16 @@ async function refreshAllResources() {
 async function refreshResourceCache(resourceType) {
     if (!apiAvailable) return;
     try {
-        const resp = await fetch(`${API_BASE_URL}/${resourceType}`, {
-            headers: { 'Accept': 'application/fhir+json' }
-        });
-        if (resp.ok) {
+        const resources = [];
+        let url = `${API_BASE_URL}/${resourceType}?_count=200`;
+        while (url) {
+            const resp = await fetch(url, { headers: { 'Accept': 'application/fhir+json' } });
+            if (!resp.ok) break;
             const bundle = await resp.json();
-            dataCache[resourceType] = (bundle.entry || []).map(e => e.resource);
+            resources.push(...(bundle.entry || []).map(e => e.resource));
+            url = bundle.link?.find(l => l.relation === 'next')?.url || null;
         }
+        dataCache[resourceType] = resources;
     } catch (e) {
         dataCache[resourceType] = dataCache[resourceType] || [];
     }
@@ -57,23 +60,20 @@ async function createResource(resourceType, resource) {
 
     if (apiAvailable) {
         try {
-            const resp = await fetch(`${API_BASE_URL}/${resourceType}/${resource.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/fhir+json', 'Accept': 'application/fhir+json' },
-                body: JSON.stringify(resource)
-            });
-            if (resp.ok) {
-                const created = await resp.json();
+            const log = await fhirInspector.request('PUT', `/${resourceType}/${resource.id}`, resource);
+            if (log.success) {
+                const created = log.response.body;
                 const cache = getResources(resourceType);
                 const idx = cache.findIndex(r => r.id === created.id);
                 if (idx === -1) cache.push(created);
                 else cache[idx] = created;
                 dataCache[resourceType] = cache;
-                showToast(`${resourceType} creado en servidor FHIR`, 'success');
                 return created;
             }
+            throw new Error('El servidor FHIR rechazó la operación');
         } catch (e) {
-            showToast(`API no disponible, guardado localmente`, 'warning');
+            if (e.message !== 'El servidor FHIR rechazó la operación') showToast(`API no disponible, guardado localmente`, 'warning');
+            throw e;
         }
     }
 
@@ -89,22 +89,19 @@ async function updateResource(resourceType, id, resource) {
 
     if (apiAvailable) {
         try {
-            const resp = await fetch(`${API_BASE_URL}/${resourceType}/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/fhir+json', 'Accept': 'application/fhir+json' },
-                body: JSON.stringify(resource)
-            });
-            if (resp.ok) {
-                const updated = await resp.json();
+            const log = await fhirInspector.request('PUT', `/${resourceType}/${id}`, resource);
+            if (log.success) {
+                const updated = log.response.body;
                 const cache = getResources(resourceType);
                 const idx = cache.findIndex(r => r.id === id);
                 if (idx !== -1) cache[idx] = updated;
                 dataCache[resourceType] = cache;
-                showToast(`${resourceType}/${id} actualizado en servidor FHIR`, 'success');
                 return updated;
             }
+            throw new Error('El servidor FHIR rechazó la operación');
         } catch (e) {
-            showToast(`API no disponible, guardado localmente`, 'warning');
+            if (e.message !== 'El servidor FHIR rechazó la operación') showToast(`API no disponible, guardado localmente`, 'warning');
+            throw e;
         }
     }
 
@@ -118,17 +115,17 @@ async function updateResource(resourceType, id, resource) {
 async function deleteResource(resourceType, id) {
     if (apiAvailable) {
         try {
-            const resp = await fetch(`${API_BASE_URL}/${resourceType}/${id}`, {
-                method: 'DELETE',
-                headers: { 'Accept': 'application/fhir+json' }
-            });
-            if (resp.ok || resp.status === 204) {
+            const log = await fhirInspector.request('DELETE', `/${resourceType}/${id}`);
+            if (log.success || log.response.status === 204) {
                 const cache = getResources(resourceType);
                 dataCache[resourceType] = cache.filter(r => r.id !== id);
-                showToast(`${resourceType}/${id} eliminado del servidor FHIR`, 'success');
                 return;
             }
-        } catch (e) {}
+            throw new Error('El servidor FHIR rechazó la operación');
+        } catch (e) {
+            if (e.message !== 'El servidor FHIR rechazó la operación') showToast(`API no disponible`, 'warning');
+            throw e;
+        }
     }
 
     const cache = getResources(resourceType);
@@ -167,6 +164,17 @@ function formatDate(iso) {
     return new Date(iso + 'T00:00:00').toLocaleDateString('es-CO', { dateStyle: 'long' });
 }
 
+function calculateAge(birthDateIso) {
+    if (!birthDateIso) return '-';
+    const birth = new Date(birthDateIso + 'T00:00:00');
+    if (isNaN(birth.getTime())) return '-';
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+    return age >= 0 ? `${age} años` : '-';
+}
+
 const LOCAL_USERS = {
     'admin@acmesalud.co': { password: 'admin123', role: 'admin', name: 'Administrador ACME', patientId: null },
     'paciente@acmesalud.co': { password: 'paciente123', role: 'patient', name: 'María Fernanda Rodríguez', patientId: 'pat-001' },
@@ -178,15 +186,18 @@ function login(email, password, role) {
     if (!user || user.password !== password) return null;
     const session = { email, role: user.role, name: user.name, patientId: user.patientId, loginAt: new Date().toISOString() };
     sessionStorage.setItem('fhir_session', JSON.stringify(session));
+    localStorage.setItem('fhir_session', JSON.stringify(session));
     return session;
 }
 
 function getSession() {
-    const s = sessionStorage.getItem('fhir_session');
+    let s = localStorage.getItem('fhir_session');
+    if (!s) s = sessionStorage.getItem('fhir_session');
     return s ? JSON.parse(s) : null;
 }
 
 function logout() {
+    localStorage.removeItem('fhir_session');
     sessionStorage.removeItem('fhir_session');
     window.location.href = 'login.html';
 }

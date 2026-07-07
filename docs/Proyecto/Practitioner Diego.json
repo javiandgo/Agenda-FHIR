@@ -1,0 +1,6 @@
+{
+  "resourceType": "Practitioner",
+  "id": "dr-diego-narvaez",
+  "identifier": [{ "value": "555222999" }],
+  "name": [{ "family": "Narvaez", "given": ["Diego"] }]
+}

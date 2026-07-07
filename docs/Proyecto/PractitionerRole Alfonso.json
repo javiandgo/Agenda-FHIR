@@ -1,0 +1,8 @@
+{
+  "resourceType": "PractitionerRole",
+  "id": "role-cardiologia-sur",
+  "practitioner": { "reference": "Practitioner/dr-alonso-fonseca" },
+  "organization": { "reference": "Organization/acme-salud" },
+  "specialty": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "394579002", "display": "Cardiology" }] }],
+  "healthcareService": [{ "reference": "HealthcareService/serv-cardiologia-sur" }]
+}

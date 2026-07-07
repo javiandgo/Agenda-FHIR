@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Location - ACME Salud FHIR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="material-icons brand-icon">local_hospital</span>
+      <div><div class="brand-name">ACME Salud</div><div class="brand-sub">Sistema FHIR R4</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar"><span class="material-icons">person</span></div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-user-name">-</div>
+        <span class="user-role" id="sidebar-user-role">Admin</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      <a class="nav-item" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
+      <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
+      <div class="nav-section-title">Recursos FHIR</div>
+      <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item active" href="locations.html"><span class="material-icons">location_on</span> Location</a>
+      <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
+      <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
+      <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
+      <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
+      <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
+      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
+      <div class="nav-section-title">Portal</div>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="sidebar-toggle"><span class="material-icons">menu</span></button>
+        <div>
+          <div class="topbar-title">Location</div>
+          <div class="breadcrumb">FHIR Resource · Sedes de las organizaciones prestadoras</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="alert alert-info mb-lg">
+        <span class="material-icons">info</span>
+        <div><strong>FHIR Location:</strong> Cada Location representa una sede física (Norte, Centro, Sur) y se relaciona con su Organization prestadora a través de <code>Location.managingOrganization</code>. Las Location se usan luego en <code>HealthcareService.location</code> y <code>PractitionerRole.location</code> para indicar dónde se presta cada servicio.</div>
+      </div>
+
+      <div class="crud-card">
+        <div class="crud-header">
+          <div>
+            <div class="crud-title">Sedes por organización prestadora</div>
+            <div class="crud-subtitle" id="loc-count">Selecciona una organización</div>
+          </div>
+          <div class="crud-actions">
+            <select id="loc-org-select" class="form-control" onchange="onLocOrgChange()" style="min-width:260px">
+              <option value="">Selecciona una organización (Prestador)...</option>
+            </select>
+            <button class="btn btn-primary" id="loc-new-btn" onclick="openLocModal()" disabled>
+              <span class="material-icons">add</span> Nueva Sede
+            </button>
+          </div>
+        </div>
+
+        <div id="loc-no-org" style="padding:32px;text-align:center;color:var(--md-sys-color-on-surface-variant)">Selecciona una organización prestadora para ver y administrar sus sedes.</div>
+
+        <div class="table-container hidden" id="loc-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID FHIR</th>
+                <th>Identificador</th>
+                <th>Nombre (Sede)</th>
+                <th>Dirección</th>
+                <th>Ciudad</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="locs-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal Crear/Editar Location -->
+<div class="modal-overlay hidden" id="loc-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span class="material-icons">location_on</span>
+        <span id="loc-modal-title">Nueva Sede</span>
+      </div>
+      <button class="close-btn" onclick="closeModal('loc-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Identificación FHIR</div>
+        <div class="form-group">
+          <label class="form-label">ID del recurso <span class="required">*</span></label>
+          <input type="text" id="loc-id" class="form-control" placeholder="loc-norte" required/>
+          <span class="form-helper">Identificador único del recurso FHIR (sin espacios)</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Identificador interno</label>
+          <input type="text" id="loc-identifier" class="form-control" placeholder="1100155555-1"/>
+        </div>
+
+        <div class="form-section-title">Organización prestadora</div>
+        <div class="form-group full-width">
+          <label class="form-label">Organization (managingOrganization) <span class="required">*</span></label>
+          <select id="loc-org" class="form-control" required></select>
+        </div>
+
+        <div class="form-section-title">Información general</div>
+        <div class="form-group full-width">
+          <label class="form-label">Nombre de la sede <span class="required">*</span></label>
+          <input type="text" id="loc-name" class="form-control" placeholder="Clínica Norte" required/>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Descripción</label>
+          <input type="text" id="loc-description" class="form-control" placeholder="Sede Norte de ACME Salud"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="loc-status" class="form-control">
+            <option value="active">Activa</option>
+            <option value="suspended">Suspendida</option>
+            <option value="inactive">Inactiva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="tel" id="loc-phone" class="form-control" placeholder="+57 1 3456701"/>
+        </div>
+
+        <div class="form-section-title">Dirección</div>
+        <div class="form-group full-width">
+          <label class="form-label">Dirección</label>
+          <input type="text" id="loc-address" class="form-control" placeholder="Calle 26 # 30-45"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad</label>
+          <input type="text" id="loc-city" class="form-control" placeholder="Bogotá"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">País</label>
+          <select id="loc-country" class="form-control">
+            <option value="CO">Colombia</option>
+            <option value="US">Estados Unidos</option>
+            <option value="MX">México</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('loc-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLoc()">
+        <span class="material-icons">save</span> Guardar Sede
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/sweetalert2.min.js"></script>
+<script src="js/fhir-client.js"></script>
+<script src="js/config.js"></script>
+<script src="js/fhir-inspector.js"></script>
+<script src="js/fhir-inspector-ui.js"></script>
+<script>
+const session = requireAuth(['admin']);
+if (session) {
+  renderSidebarUser(session);
+  function initPage() {
+    populateLocOrgSelect();
+  }
+  if (Object.keys(dataCache).length > 0) {
+    initPage();
+  } else {
+    document.addEventListener('fhirCacheReady', initPage, { once: true });
+  }
+}
+
+const LOC_ORG_SESSION_KEY = 'locations_org_id';
+let editingLocId = null;
+
+function toast(icon, title, text) {
+  try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
+}
+
+function getProviderOrgs() {
+  const orgs = getResources('Organization');
+  const providers = orgs.filter(o => o.type?.[0]?.coding?.[0]?.code === 'prov');
+  return providers.length ? providers : orgs;
+}
+
+function populateLocOrgSelect() {
+  const sel = document.getElementById('loc-org-select');
+  const orgs = getProviderOrgs();
+  sel.innerHTML = '<option value="">Selecciona una organización (Prestador)...</option>' +
+    orgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+
+  const savedId = sessionStorage.getItem(LOC_ORG_SESSION_KEY);
+  if (savedId && getResource('Organization', savedId)) {
+    sel.value = savedId;
+    onLocOrgChange();
+  }
+}
+
+function onLocOrgChange() {
+  const orgId = document.getElementById('loc-org-select').value;
+  const noOrg = document.getElementById('loc-no-org');
+  const tableWrap = document.getElementById('loc-table-wrap');
+  const newBtn = document.getElementById('loc-new-btn');
+
+  if (!orgId) {
+    sessionStorage.removeItem(LOC_ORG_SESSION_KEY);
+    noOrg.classList.remove('hidden');
+    tableWrap.classList.add('hidden');
+    newBtn.setAttribute('disabled', '');
+    document.getElementById('loc-count').textContent = 'Selecciona una organización';
+    return;
+  }
+
+  sessionStorage.setItem(LOC_ORG_SESSION_KEY, orgId);
+  noOrg.classList.add('hidden');
+  tableWrap.classList.remove('hidden');
+  newBtn.removeAttribute('disabled');
+  renderLocs();
+}
+
+function renderLocs() {
+  const orgId = document.getElementById('loc-org-select').value;
+  if (!orgId) return;
+
+  const all = getResources('Location').filter(l => l.managingOrganization?.reference === `Organization/${orgId}`);
+  document.getElementById('loc-count').textContent = `${all.length} sede(s) registrada(s)`;
+
+  const tbody = document.getElementById('locs-table');
+  tbody.innerHTML = '';
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">Esta organización no tiene sedes registradas</td></tr>';
+    return;
+  }
+
+  all.forEach(loc => {
+    const phone = loc.telecom?.find(t => t.system === 'phone')?.value || '-';
+    const statusBadge = { active: 'badge-active', suspended: 'badge-pending', inactive: 'badge-inactive' };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="fhir-id">${loc.id}</span></td>
+      <td><span class="text-xs" style="font-family:monospace">${loc.identifier?.[0]?.value || '-'}</span></td>
+      <td><strong>${loc.name || '-'}</strong>${loc.description ? `<br><span class="text-muted text-xs">${loc.description}</span>` : ''}</td>
+      <td class="text-sm">${loc.address?.line?.[0] || '-'}</td>
+      <td class="text-sm">${loc.address?.city || '-'}</td>
+      <td>${phone}</td>
+      <td><span class="badge ${statusBadge[loc.status] || 'badge-inactive'}">${loc.status || 'inactive'}</span></td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outlined btn-sm btn-icon" title="Ver JSON FHIR" onclick='viewFHIR(${JSON.stringify(loc.id)})'><span class="material-icons" style="font-size:16px">data_object</span></button>
+          <button class="btn btn-outlined btn-sm" onclick='editLoc(${JSON.stringify(loc.id)})'><span class="material-icons" style="font-size:16px">edit</span> Editar</button>
+          <button class="btn btn-danger btn-sm" onclick='openDeleteLoc(${JSON.stringify(loc.id)})'><span class="material-icons" style="font-size:16px">delete</span></button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function populateLocOrgDropdown(selectedOrgId) {
+  const sel = document.getElementById('loc-org');
+  const orgs = getProviderOrgs();
+  sel.innerHTML = orgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+  sel.value = selectedOrgId || document.getElementById('loc-org-select').value || '';
+}
+
+function openLocModal(loc = null) {
+  editingLocId = loc?.id || null;
+  populateLocOrgDropdown(loc?.managingOrganization?.reference?.replace('Organization/', ''));
+  document.getElementById('loc-modal-title').textContent = loc ? 'Editar Sede' : 'Nueva Sede';
+  document.getElementById('loc-id').value = loc?.id || '';
+  document.getElementById('loc-id').disabled = !!loc;
+  document.getElementById('loc-identifier').value = loc?.identifier?.[0]?.value || '';
+  document.getElementById('loc-name').value = loc?.name || '';
+  document.getElementById('loc-description').value = loc?.description || '';
+  document.getElementById('loc-status').value = loc?.status || 'active';
+  document.getElementById('loc-phone').value = loc?.telecom?.find(t => t.system === 'phone')?.value || '';
+  document.getElementById('loc-address').value = loc?.address?.line?.[0] || '';
+  document.getElementById('loc-city').value = loc?.address?.city || '';
+  document.getElementById('loc-country').value = loc?.address?.country || 'CO';
+  openModal('loc-modal');
+}
+
+function editLoc(id) {
+  const loc = getResource('Location', id);
+  if (loc) openLocModal(loc);
+}
+
+async function saveLoc() {
+  const id = document.getElementById('loc-id').value.trim().replace(/\s+/g, '-');
+  const orgId = document.getElementById('loc-org').value;
+  const name = document.getElementById('loc-name').value.trim();
+  if (!id || !orgId || !name) { toast('error', 'Campos obligatorios', 'ID, organización y nombre son obligatorios'); return; }
+
+  const existing = editingLocId ? getResource('Location', editingLocId) : null;
+  const phone = document.getElementById('loc-phone').value.trim();
+
+  const loc = {
+    ...(existing || {}),
+    resourceType: 'Location', id,
+    identifier: document.getElementById('loc-identifier').value.trim()
+      ? [{ system: 'urn:co:acme:location', value: document.getElementById('loc-identifier').value.trim() }]
+      : [],
+    status: document.getElementById('loc-status').value,
+    name,
+    description: document.getElementById('loc-description').value.trim(),
+    mode: existing?.mode || 'instance',
+    telecom: phone ? [{ system: 'phone', value: phone }] : [],
+    address: {
+      line: [document.getElementById('loc-address').value.trim()],
+      city: document.getElementById('loc-city').value.trim(),
+      country: document.getElementById('loc-country').value
+    },
+    managingOrganization: { reference: `Organization/${orgId}` }
+  };
+
+  Swal.fire({
+    icon: 'info', title: editingLocId ? 'Guardando...' : 'Creando...',
+    text: 'Enviando datos al servidor FHIR',
+    showConfirmButton: false, allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    if (editingLocId) {
+      await updateResource('Location', editingLocId, loc);
+      Swal.close();
+      closeModal('loc-modal');
+      await Swal.fire({ icon: 'success', title: 'Actualizada', text: 'Sede actualizada correctamente', timer: 1500, showConfirmButton: false });
+    } else {
+      if (getResource('Location', id)) { Swal.close(); await Swal.fire({ icon: 'error', title: 'ID duplicado', text: 'Ya existe una Location con ese ID' }); return; }
+      await createResource('Location', loc);
+      Swal.close();
+      closeModal('loc-modal');
+      await Swal.fire({ icon: 'success', title: 'Creada', text: 'Sede creada exitosamente', timer: 1500, showConfirmButton: false });
+    }
+    sessionStorage.setItem(LOC_ORG_SESSION_KEY, orgId);
+    location.reload();
+  } catch (e) {
+    Swal.close();
+    await Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'Error al guardar en el servidor FHIR' });
+  }
+}
+
+async function openDeleteLoc(id) {
+  try {
+    const result = await Swal.fire({
+      icon: 'warning', title: 'Eliminar Sede',
+      text: `¿Estás seguro de eliminar ${id}? Esta acción no se puede deshacer.`,
+      showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d32f2f'
+    });
+    if (result.isConfirmed) {
+      await deleteResource('Location', id);
+      await Swal.fire({ icon: 'success', title: 'Eliminada', text: 'Sede eliminada correctamente', timer: 1500, showConfirmButton: false });
+      location.reload();
+    }
+  } catch (e) {
+    await Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'Error al eliminar del servidor FHIR' });
+  }
+}
+
+function viewFHIR(id) {
+  const loc = getResource('Location', id);
+  const win = window.open('', '_blank', 'width=700,height=600');
+  win.document.write(`<html><head><title>FHIR Location/${id}</title><style>body{font-family:monospace;background:#1e1e1e;color:#d4d4d4;padding:20px;white-space:pre}</style></head><body>${JSON.stringify(loc, null, 2)}</body></html>`);
+}
+</script>
+</body>
+</html>

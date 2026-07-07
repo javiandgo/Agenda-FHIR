@@ -163,6 +163,15 @@
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
+            .inspector-source {
+                color: #7c4dff;
+                font-size: 10px;
+                background: #232136;
+                border: 1px solid #313244;
+                border-radius: 4px;
+                padding: 1px 6px;
+                white-space: nowrap;
+            }
             .inspector-duration {
                 color: #585b70;
                 font-size: 10px;
@@ -282,6 +291,7 @@
                 <span class="inspector-method ${methodClass}">${req.method}</span>
                 <span class="inspector-status ${statusClass}">${res.status || 'ERR'}</span>
                 <span class="inspector-endpoint" title="${endpoint}">${endpoint}</span>
+                <span class="inspector-source" title="Origen">${log.source || ''}</span>
                 <span class="inspector-duration">${log.duration}ms</span>
                 <span style="color:#585b70;font-size:10px">${time}</span>
             </div>

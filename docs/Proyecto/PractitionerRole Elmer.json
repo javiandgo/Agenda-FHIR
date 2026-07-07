@@ -1,0 +1,8 @@
+{
+  "resourceType": "PractitionerRole",
+  "id": "role-obstetricia-norte",
+  "practitioner": { "reference": "Practitioner/dr-elmer-luna" },
+  "organization": { "reference": "Organization/acme-salud" },
+  "specialty": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "394585009", "display": "Obstetrics" }] }],
+  "healthcareService": [{ "reference": "HealthcareService/serv-obstetricia-norte" }]
+}

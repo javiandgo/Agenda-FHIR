@@ -1,0 +1,14 @@
+{
+  "resourceType": "PractitionerRole",
+  "id": "role-nefrologia-centro",
+  "practitioner": { "reference": "Practitioner/dr-luis-chavez" },
+  "organization": { "reference": "Organization/acme-salud" },
+  "specialty": [
+    {
+      "coding": [
+        { "system": "http://snomed.info/sct", "code": "394589003", "display": "Nephrology" }
+      ]
+    }
+  ],
+  "healthcareService": [{ "reference": "HealthcareService/serv-nefrologia-centro" }]
+}

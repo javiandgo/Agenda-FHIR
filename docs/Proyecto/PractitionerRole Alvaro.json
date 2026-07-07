@@ -1,0 +1,8 @@
+{
+  "resourceType": "PractitionerRole",
+  "id": "role-gastro-centro",
+  "practitioner": { "reference": "Practitioner/dr-alvaro-silva" },
+  "organization": { "reference": "Organization/acme-salud" },
+  "specialty": [{ "coding": [{ "system": "http://snomed.info/sct", "code": "394584008", "display": "Gastroenterology" }] }],
+  "healthcareService": [{ "reference": "HealthcareService/serv-gastro-centro" }]
+}

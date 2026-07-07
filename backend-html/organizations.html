@@ -30,6 +30,7 @@
       <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item active" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -37,7 +38,7 @@
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer">
       <button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button>
@@ -246,7 +247,7 @@ function renderOrgs(filter = '') {
   }
 
   filtered.forEach(org => {
-    const nit = org.identifier?.find(i => i.system?.includes('nit'))?.value || '-';
+    const nit = org.identifier?.find(i => i.system?.includes('minsalud'))?.value || '-';
     const type = org.type?.[0]?.coding?.[0];
     const phone = org.telecom?.find(t => t.system === 'phone')?.value || '-';
     const city = org.address?.[0]?.city || '-';
@@ -282,7 +283,7 @@ function openOrgModal(org = null) {
   document.getElementById('org-modal-title').textContent = org ? 'Editar Organization' : 'Nueva Organization';
   document.getElementById('org-id').value = org?.id || '';
   document.getElementById('org-id').disabled = !!org;
-  document.getElementById('org-nit').value = org?.identifier?.find(i => i.system?.includes('nit'))?.value || '';
+  document.getElementById('org-nit').value = org?.identifier?.find(i => i.system?.includes('minsalud'))?.value || '';
   document.getElementById('org-name').value = org?.name || '';
   document.getElementById('org-alias').value = org?.alias?.[0] || '';
   document.getElementById('org-type').value = org?.type?.[0]?.coding?.[0]?.code || 'prov';
@@ -304,7 +305,7 @@ function toast(icon, title, text) {
   try { if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch (e) { console.warn('toast err', e); }
 }
 
-function saveOrg() {
+async function saveOrg() {
   const id = document.getElementById('org-id').value.trim().replace(/\s+/g, '-');
   const name = document.getElementById('org-name').value.trim();
   if (!id || !name) { toast('error', 'Campos obligatorios', 'ID y Nombre son obligatorios'); return; }
@@ -320,7 +321,7 @@ function saveOrg() {
   const nit = document.getElementById('org-nit').value.trim();
   const org = {
     resourceType: 'Organization', id,
-    identifier: nit ? [{ system: 'urn:co:nit', value: nit }] : [],
+    identifier: nit ? [{ use: 'official', system: 'http://minsalud.gov.co/rid', value: nit }] : [],
     active: document.getElementById('org-active').value === 'true',
     type: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/organization-type', code: typeCode, display: typeLabels[typeCode] }] }],
     name,
@@ -333,39 +334,49 @@ function saveOrg() {
     }]
   };
 
-  if (editingId) {
-    updateResource('Organization', editingId, org);
-    closeModal('org-modal');
-    toast('success', 'Actualizada', 'Organization actualizada correctamente');
-  } else {
-    const existing = getResource('Organization', id);
-    if (existing) { toast('error', 'ID duplicado', 'Ya existe una Organization con ese ID'); return; }
-    createResource('Organization', org);
-    closeModal('org-modal');
-    toast('success', 'Creada', 'Organization creada exitosamente');
+  Swal.fire({
+    icon: 'info', title: editingId ? 'Guardando...' : 'Creando...',
+    text: 'Enviando datos al servidor FHIR',
+    showConfirmButton: false, allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    if (editingId) {
+      await updateResource('Organization', editingId, org);
+      Swal.close();
+      closeModal('org-modal');
+      await Swal.fire({ icon: 'success', title: 'Actualizada', text: 'Organization actualizada correctamente', timer: 1500, showConfirmButton: false });
+    } else {
+      const existing = getResource('Organization', id);
+      if (existing) { Swal.close(); await Swal.fire({ icon: 'error', title: 'ID duplicado', text: 'Ya existe una Organization con ese ID' }); return; }
+      await createResource('Organization', org);
+      Swal.close();
+      closeModal('org-modal');
+      await Swal.fire({ icon: 'success', title: 'Creada', text: 'Organization creada exitosamente', timer: 1500, showConfirmButton: false });
+    }
+    location.reload();
+  } catch (e) {
+    Swal.close();
+    await Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'Error al guardar en el servidor FHIR' });
   }
-  renderOrgs();
 }
 
-function openDelete(id) {
+async function openDelete(id) {
   try {
-    Swal.fire({
+    const result = await Swal.fire({
       icon: 'warning', title: 'Eliminar Organization',
       text: `¿Estás seguro de eliminar ${id}? Esta acción no se puede deshacer.`,
       showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar',
       confirmButtonColor: '#d32f2f'
-    }).then(result => {
-      if (result.isConfirmed) {
-        deleteResource('Organization', id);
-        toast('success', 'Eliminada', 'Organization eliminada correctamente');
-        renderOrgs();
-      }
     });
-  } catch (e) {
-    if (confirm(`¿Eliminar ${id}?`)) {
-      deleteResource('Organization', id);
-      renderOrgs();
+    if (result.isConfirmed) {
+      await deleteResource('Organization', id);
+      await Swal.fire({ icon: 'success', title: 'Eliminada', text: 'Organization eliminada correctamente', timer: 1500, showConfirmButton: false });
+      location.reload();
     }
+  } catch (e) {
+    await Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'Error al eliminar del servidor FHIR' });
   }
 }
 

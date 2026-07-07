@@ -1,0 +1,6 @@
+{
+  "resourceType": "Practitioner",
+  "id": "dr-elmer-luna",
+  "identifier": [{ "use": "official", "value": "222333444" }],
+  "name": [{ "family": "Luna", "given": ["Elmer"] }]
+}

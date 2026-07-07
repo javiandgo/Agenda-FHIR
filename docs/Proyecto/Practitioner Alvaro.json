@@ -1,0 +1,6 @@
+{
+  "resourceType": "Practitioner",
+  "id": "dr-alvaro-silva",
+  "identifier": [{ "use": "official", "value": "444777333" }],
+  "name": [{ "family": "Silva", "given": ["Alvaro"] }]
+}

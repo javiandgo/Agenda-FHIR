@@ -8,6 +8,25 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
 <script src="js/sweetalert2.min.js"></script>
+<style>
+  .slot-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(120px, auto); gap: var(--spacing-sm); padding: 0 var(--spacing-lg) var(--spacing-lg); }
+  .slot-calendar-grid .calendar-day-header { text-align: center; font-size: 12px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); padding: var(--spacing-sm); }
+  .slot-calendar-grid .calendar-day { display: flex; flex-direction: column; align-items: stretch; border: 1px solid var(--md-sys-color-outline-variant); border-radius: var(--radius-md); overflow: hidden; }
+  .slot-calendar-grid .calendar-day.empty { border: none; opacity: 0.3; }
+  .slot-calendar-grid .calendar-day.unavailable { color: var(--md-sys-color-outline); }
+  .slot-calendar-grid .calendar-day-num { font-size: 12px; font-weight: 600; padding: 3px 6px; color: var(--md-sys-color-on-surface-variant); flex-shrink: 0; }
+  .slot-calendar-grid .calendar-day-slots { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 0 4px 4px; }
+  .slot-chip { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 10px; line-height: 1.4; padding: 1px 5px; border-radius: 4px; }
+  .slot-chip .slot-chip-time { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-chip .slot-chip-del { font-size: 12px; opacity: 0.55; cursor: pointer; flex-shrink: 0; }
+  .slot-chip .slot-chip-del:hover { opacity: 1; }
+  .slot-chip.chip-free        { background: #e8f5e9; color: #2e7d32; }
+  .slot-chip.chip-busy        { background: #fce4ec; color: #c62828; }
+  .slot-chip.chip-unavailable { background: #eceff1; color: #546e7a; }
+  .slot-chip.chip-tentative   { background: #fff8e1; color: #f57f17; }
+  .slot-calendar-header { display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-lg) var(--spacing-lg) 0; }
+  .slot-calendar-header h3 { font-size: 18px; font-weight: 500; text-transform: capitalize; }
+</style>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -20,6 +39,7 @@
       <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -27,7 +47,7 @@
       <a class="nav-item active" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -77,27 +97,30 @@
       <div class="tab-content hidden" id="tab-slots">
         <div class="crud-card">
           <div class="crud-header">
-            <div><div class="crud-title">Espacios de tiempo (Slots)</div><div class="crud-subtitle" id="slot-count">Cargando...</div></div>
+            <div><div class="crud-title">Espacios de tiempo (Slots)</div><div class="crud-subtitle" id="slot-count">Selecciona una agenda</div></div>
             <div class="crud-actions">
+              <select id="slot-sched-select" class="form-control" onchange="onSlotSchedChange()" style="min-width:260px">
+                <option value="">Selecciona una agenda...</option>
+              </select>
               <div class="search-field">
                 <span class="material-icons" style="font-size:18px;color:var(--md-sys-color-on-surface-variant)">filter_list</span>
-                <select id="filter-slot-status" onchange="renderSlots()" style="border:none;background:none;outline:none;font-size:14px;cursor:pointer">
+                <select id="filter-slot-status" onchange="renderSlotsCalendar()" style="border:none;background:none;outline:none;font-size:14px;cursor:pointer">
                   <option value="">Todos los estados</option>
                   <option value="free">Libres</option>
                   <option value="busy">Ocupados</option>
                   <option value="busy-unavailable">No disponible</option>
                 </select>
               </div>
-              <button class="btn btn-primary" onclick="openSlotModal()"><span class="material-icons">add</span> Nuevo Slot</button>
             </div>
           </div>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr><th>ID FHIR</th><th>Schedule</th><th>Servicio</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Acciones</th></tr>
-              </thead>
-              <tbody id="slots-table"></tbody>
-            </table>
+          <div id="slot-no-sched" style="padding:32px;text-align:center;color:var(--md-sys-color-on-surface-variant)">Selecciona una agenda para ver sus espacios en calendario.</div>
+          <div id="slot-calendar-wrap" class="hidden">
+            <div class="slot-calendar-header">
+              <button class="btn btn-outlined btn-sm" onclick="shiftSlotCalendarMonth(-1)"><span class="material-icons">chevron_left</span></button>
+              <h3 id="slot-calendar-month"></h3>
+              <button class="btn btn-outlined btn-sm" onclick="shiftSlotCalendarMonth(1)"><span class="material-icons">chevron_right</span></button>
+            </div>
+            <div class="slot-calendar-grid" id="slot-calendar-grid"></div>
           </div>
         </div>
       </div>
@@ -217,7 +240,50 @@
   </div>
 </div>
 
+<!-- Modal Generar espacios (grid de Slots) -->
+<div class="modal-overlay hidden" id="gen-slots-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><span class="material-icons">grid_on</span><span>Generar espacios</span></div>
+      <button class="close-btn" onclick="closeModal('gen-slots-modal')"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info mb-lg" id="gen-slots-hint" style="display:none">
+        <span class="material-icons">info</span>
+        <div id="gen-slots-hint-text"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-section-title">Días de la semana</div>
+        <div class="form-group full-width" id="gen-slots-days" style="display:flex;flex-wrap:wrap;gap:12px">
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="1" checked/> Lun</label>
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="2" checked/> Mar</label>
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="3" checked/> Mié</label>
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="4" checked/> Jue</label>
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="5" checked/> Vie</label>
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="6"/> Sáb</label>
+          <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="0"/> Dom</label>
+        </div>
 
+        <div class="form-section-title">Rango de horas (bloques de 15 min)</div>
+        <div class="form-group">
+          <label class="form-label">Hora de inicio <span class="required">*</span></label>
+          <select id="gen-slots-start" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora de fin <span class="required">*</span></label>
+          <select id="gen-slots-end" class="form-control" required></select>
+        </div>
+        <div class="form-group full-width text-sm text-muted">
+          Se crearán espacios libres de 15 minutos, en los días marcados, dentro del horizonte de planificación mensual de la agenda. Los días que ya tengan slots registrados en esta agenda se omiten (no se sobrescriben).
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outlined" onclick="closeModal('gen-slots-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmGenerateSlots()"><span class="material-icons">grid_on</span> Generar</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
@@ -228,7 +294,7 @@
 const session = requireAuth(['admin']);
 if (session) { renderSidebarUser(session);
   function initPage() {
-    renderScheds(); renderSlots(); if (new URLSearchParams(location.search).get('new')) openSchedModal();
+    renderScheds(); populateSlotSchedSelect(); if (new URLSearchParams(location.search).get('new')) openSchedModal();
   }
   if (Object.keys(dataCache).length > 0) {
     initPage();
@@ -275,7 +341,7 @@ function renderScheds() {
       <td>
         <div style="display:flex;gap:4px">
           <button class="btn btn-outlined btn-sm" onclick='editSched(${JSON.stringify(sched.id)})'><span class="material-icons" style="font-size:16px">edit</span></button>
-          <button class="btn btn-secondary btn-sm" onclick='openSlotModal(null, ${JSON.stringify(sched.id)})'><span class="material-icons" style="font-size:16px">add</span> Slot</button>
+          <button class="btn btn-secondary btn-sm" title="Generar espacios de 15 min dentro de un rango de días/horas" onclick='openGenerateSlotsModal(${JSON.stringify(sched.id)})'><span class="material-icons" style="font-size:16px">grid_on</span> Generar espacios</button>
           <button class="btn btn-danger btn-sm" onclick='openDeleteSched(${JSON.stringify(sched.id)}, "Schedule")'><span class="material-icons" style="font-size:16px">delete</span></button>
         </div>
       </td>`;
@@ -283,36 +349,287 @@ function renderScheds() {
   });
 }
 
-function renderSlots() {
-  const statusFilter = document.getElementById('filter-slot-status')?.value || '';
-  let all = getResources('Slot');
-  if (statusFilter) all = all.filter(s => s.status === statusFilter);
-  document.getElementById('slot-count').textContent = `${all.length} slot(s)`;
-  const tbody = document.getElementById('slots-table');
-  tbody.innerHTML = '';
-  if (!all.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">Sin slots registrados</td></tr>'; return; }
+// Grid de disponibilidad: bloques libres de 15 min, en los días y el rango horario
+// que el admin elija por agenda. Se genera al grano más fino de la tabla de convenios
+// para poder consumir N slots contiguos según la duración real (especialidad +
+// aseguradora) al agendar una cita.
+const GRID_MINUTES = 15;
+let genSlotsSchedId = null;
 
-  const statusBadge = { free: 'badge-active', busy: 'badge-cancelled', 'busy-unavailable': 'badge-inactive', 'busy-tentative': 'badge-pending' };
-  all.forEach(slot => {
-    const sched = getResource('Schedule', slot.schedule?.reference?.replace('Schedule/', ''));
-    const actor = sched?.actor?.[0]?.display || slot.schedule?.reference || '-';
-    const service = slot.serviceType?.[0]?.coding?.[0]?.display || '-';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><span class="fhir-id">${slot.id}</span></td>
-      <td>${actor}</td>
-      <td>${service}</td>
-      <td class="fw-500">${formatDateTime(slot.start)}</td>
-      <td>${formatDateTime(slot.end)}</td>
-      <td><span class="badge ${statusBadge[slot.status] || 'badge-inactive'}">${slot.status}</span></td>
-      <td>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-outlined btn-sm" onclick='editSlot(${JSON.stringify(slot.id)})'><span class="material-icons" style="font-size:16px">edit</span></button>
-          <button class="btn btn-danger btn-sm" onclick='openDeleteSched(${JSON.stringify(slot.id)}, "Slot")'><span class="material-icons" style="font-size:16px">delete</span></button>
-        </div>
-      </td>`;
-    tbody.appendChild(tr);
+function buildTimeOptions(selectEl, selected) {
+  // Redondea hacia abajo al grano de 15 min más cercano, por si la hora a preseleccionar
+  // (p.ej. proveniente de PractitionerRole.availableTime) no cae justo en el grid.
+  const [sh, sm] = (selected || '00:00').split(':').map(Number);
+  const roundedMins = Math.floor((sh * 60 + sm) / GRID_MINUTES) * GRID_MINUTES;
+  const roundedSelected = `${String(Math.floor(roundedMins / 60)).padStart(2, '0')}:${String(roundedMins % 60).padStart(2, '0')}`;
+
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += GRID_MINUTES) {
+      const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      html += `<option value="${val}"${val === roundedSelected ? ' selected' : ''}>${val}</option>`;
+    }
+  }
+  selectEl.innerHTML = html;
+}
+
+const FHIR_DOW_TO_JS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+let genSlotsAvailability = null; // PractitionerRole.availableTime[0] de la agenda abierta, si existe
+
+// El Schedule por sí solo no define horario diario; la disponibilidad real del médico
+// vive en PractitionerRole.availableTime. Sin esto, el generador de slots quedaría
+// desconectado de ese recurso y permitiría crear espacios en días/horas en que el
+// médico no atiende según su PractitionerRole.
+function getAvailableTimeForSchedule(sched) {
+  const pracRef = sched.actor?.find(a => a.reference?.startsWith('Practitioner/'))?.reference;
+  if (!pracRef) return null;
+  const role = getResources('PractitionerRole').find(r => r.practitioner?.reference === pracRef);
+  return role?.availableTime?.[0] || null;
+}
+
+function openGenerateSlotsModal(schedId) {
+  const sched = getResource('Schedule', schedId);
+  if (!sched?.planningHorizon?.start || !sched?.planningHorizon?.end) {
+    toast('error', 'Error', 'La agenda no tiene horizonte de planificación definido');
+    return;
+  }
+  genSlotsSchedId = schedId;
+  genSlotsAvailability = getAvailableTimeForSchedule(sched);
+
+  const defaultDays = genSlotsAvailability?.daysOfWeek?.length
+    ? new Set(genSlotsAvailability.daysOfWeek.map(d => FHIR_DOW_TO_JS[d]))
+    : new Set([1, 2, 3, 4, 5]);
+  document.querySelectorAll('#gen-slots-days input[type=checkbox]').forEach(cb => {
+    cb.checked = defaultDays.has(parseInt(cb.value));
   });
+
+  const startHour = (genSlotsAvailability?.availableStartTime || '07:00:00').substring(0, 5);
+  const endHour = (genSlotsAvailability?.availableEndTime || '17:00:00').substring(0, 5);
+  buildTimeOptions(document.getElementById('gen-slots-start'), startHour);
+  buildTimeOptions(document.getElementById('gen-slots-end'), endHour);
+
+  const hint = document.getElementById('gen-slots-hint');
+  const hintText = document.getElementById('gen-slots-hint-text');
+  if (genSlotsAvailability) {
+    hintText.innerHTML = `Días y horas precargados desde <strong>PractitionerRole.availableTime</strong> del médico de esta agenda. Puedes ajustarlos, pero se te avisará si el rango elegido queda fuera de su disponibilidad registrada.`;
+  } else {
+    hintText.innerHTML = `Este médico no tiene <strong>PractitionerRole.availableTime</strong> definido; se usa un rango por defecto (Lun-Vie 07:00-17:00).`;
+  }
+  hint.style.display = 'flex';
+
+  openModal('gen-slots-modal');
+}
+
+async function confirmGenerateSlots() {
+  const schedId = genSlotsSchedId;
+  const sched = getResource('Schedule', schedId);
+  if (!sched) return;
+
+  const days = [...document.querySelectorAll('#gen-slots-days input:checked')].map(cb => parseInt(cb.value));
+  const startHour = document.getElementById('gen-slots-start').value;
+  const endHour = document.getElementById('gen-slots-end').value;
+
+  if (!days.length) { toast('error', 'Error', 'Selecciona al menos un día de la semana'); return; }
+  if (!startHour || !endHour || startHour === endHour) { toast('error', 'Error', 'La hora de inicio y la hora de fin deben ser diferentes'); return; }
+  if (endHour <= startHour) { toast('error', 'Error', 'La hora de fin debe ser mayor a la hora de inicio'); return; }
+
+  if (genSlotsAvailability) {
+    const availDays = new Set((genSlotsAvailability.daysOfWeek || []).map(d => FHIR_DOW_TO_JS[d]));
+    const availStart = (genSlotsAvailability.availableStartTime || '00:00').substring(0, 5);
+    const availEnd = (genSlotsAvailability.availableEndTime || '23:45').substring(0, 5);
+    const outsideDays = days.filter(d => !availDays.has(d));
+    const outsideHours = startHour < availStart || endHour > availEnd;
+    if (outsideDays.length || outsideHours) {
+      const dayNames = { 0: 'Dom', 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb' };
+      const detail = [
+        outsideDays.length ? `día(s) ${outsideDays.map(d => dayNames[d]).join(', ')} fuera de su disponibilidad` : '',
+        outsideHours ? `rango horario fuera de ${availStart}-${availEnd}` : ''
+      ].filter(Boolean).join(' y ');
+      const confirmOutside = await Swal.fire({
+        icon: 'warning', title: 'Fuera de la disponibilidad del médico',
+        html: `El PractitionerRole de este médico registra disponibilidad solo ${genSlotsAvailability.daysOfWeek?.join('/') || ''} de ${availStart} a ${availEnd}.<br>Lo que elegiste tiene ${detail}.<br><br>¿Deseas generar los espacios igual?`,
+        showCancelButton: true, confirmButtonText: 'Generar de todas formas', cancelButtonText: 'Ajustar selección'
+      });
+      if (!confirmOutside.isConfirmed) return;
+    }
+  }
+
+  closeModal('gen-slots-modal');
+
+  const startStr = sched.planningHorizon.start;
+  const endStr = sched.planningHorizon.end;
+  const [startH, startM] = startHour.split(':').map(Number);
+  const [endH, endM] = endHour.split(':').map(Number);
+  const daySet = new Set(days);
+
+  const existingDays = new Set(
+    getResources('Slot')
+      .filter(sl => sl.schedule?.reference === `Schedule/${schedId}`)
+      .map(sl => sl.start?.substring(0, 10))
+  );
+  const spec = sched.serviceType?.[0]?.coding?.[0];
+
+  // Se arma la lista completa de slots a crear ANTES de disparar solicitudes. El día se
+  // arma con getFullYear/getMonth/getDate (no toISOString) para no desplazarse un día
+  // en navegadores con zona horaria detrás de UTC (p.ej. Bogotá UTC-5).
+  const jobs = [];
+  let skippedDays = 0;
+  const start = new Date(startStr + 'T00:00:00');
+  const end = new Date(endStr + 'T00:00:00');
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (!daySet.has(d.getDay())) continue;
+    const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (existingDays.has(dayStr)) { skippedDays++; continue; }
+
+    for (let mins = startH * 60 + startM; mins < endH * 60 + endM; mins += GRID_MINUTES) {
+      const h = Math.floor(mins / 60), m = mins % 60;
+      const slotStart = new Date(d);
+      slotStart.setHours(h, m, 0, 0);
+      const slotEnd = new Date(slotStart.getTime() + GRID_MINUTES * 60000);
+      const id = `slot-${schedId}-${dayStr.replace(/-/g, '')}-${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}`;
+      jobs.push(() => createResource('Slot', {
+        resourceType: 'Slot', id,
+        schedule: { reference: `Schedule/${schedId}` },
+        status: 'free',
+        serviceType: spec ? [{ coding: [spec] }] : [],
+        start: slotStart.toISOString(),
+        end: slotEnd.toISOString()
+      }));
+    }
+  }
+
+  if (!jobs.length) {
+    Swal.fire({ icon: 'info', title: 'Nada por generar', text: `Todos los días seleccionados ya tienen slots registrados (${skippedDays} omitido(s)).`, timer: 3000, showConfirmButton: false });
+    return;
+  }
+
+  Swal.fire({ title: 'Generando slots...', html: `Creando 0 / ${jobs.length}...`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  // Concurrencia limitada (no Promise.all sobre todos a la vez) para no saturar el
+  // servidor FHIR local, y ningún fallo individual aborta el resto del lote.
+  const CONCURRENCY = 6;
+  let created = 0, failed = 0, done = 0, firstError = '';
+  let next = 0;
+  async function worker() {
+    while (next < jobs.length) {
+      const job = jobs[next++];
+      try {
+        await job();
+        created++;
+      } catch (e) {
+        failed++;
+        if (!firstError) firstError = e?.message || 'Error desconocido';
+      }
+      done++;
+      const container = Swal.getHtmlContainer();
+      if (container) container.textContent = `Creando ${done} / ${jobs.length}...`;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, worker));
+
+  Swal.close();
+  Swal.fire({
+    icon: failed ? 'warning' : 'success',
+    title: failed ? 'Generado con errores' : 'Espacios generados',
+    text: `${created} slot(s) creados. ${skippedDays} día(s) omitido(s) por tener slots previos.` + (failed ? ` ${failed} fallaron. Detalle: ${firstError}` : ''),
+    showConfirmButton: !!failed,
+    timer: failed ? undefined : 2500
+  }).then(() => location.reload());
+}
+
+const SLOT_SCHED_SESSION_KEY = 'schedules_slot_sched_id';
+let slotCalRefDate = null;
+
+function populateSlotSchedSelect() {
+  const sel = document.getElementById('slot-sched-select');
+  const scheds = getResources('Schedule');
+  sel.innerHTML = '<option value="">Selecciona una agenda...</option>' +
+    scheds.map(s => `<option value="${s.id}">${s.actor?.[0]?.display || s.id} — ${s.specialty?.[0]?.coding?.[0]?.display || s.serviceType?.[0]?.coding?.[0]?.display || ''} (${formatDate(s.planningHorizon?.start)})</option>`).join('');
+
+  const savedId = sessionStorage.getItem(SLOT_SCHED_SESSION_KEY);
+  if (savedId && getResource('Schedule', savedId)) {
+    sel.value = savedId;
+    onSlotSchedChange();
+  }
+}
+
+function onSlotSchedChange() {
+  const schedId = document.getElementById('slot-sched-select').value;
+  const noSched = document.getElementById('slot-no-sched');
+  const wrap = document.getElementById('slot-calendar-wrap');
+
+  if (!schedId) {
+    sessionStorage.removeItem(SLOT_SCHED_SESSION_KEY);
+    noSched.classList.remove('hidden');
+    wrap.classList.add('hidden');
+    document.getElementById('slot-count').textContent = 'Selecciona una agenda';
+    return;
+  }
+
+  sessionStorage.setItem(SLOT_SCHED_SESSION_KEY, schedId);
+  noSched.classList.add('hidden');
+  wrap.classList.remove('hidden');
+
+  const sched = getResource('Schedule', schedId);
+  slotCalRefDate = sched?.planningHorizon?.start ? new Date(sched.planningHorizon.start + 'T00:00:00') : new Date();
+  renderSlotsCalendar();
+}
+
+function shiftSlotCalendarMonth(delta) {
+  slotCalRefDate.setMonth(slotCalRefDate.getMonth() + delta);
+  renderSlotsCalendar();
+}
+
+function formatTimeOnly(iso) {
+  return iso ? iso.split('T')[1]?.substring(0, 5) || '' : '';
+}
+
+function renderSlotsCalendar() {
+  const schedId = document.getElementById('slot-sched-select').value;
+  if (!schedId || !slotCalRefDate) return;
+
+  const statusFilter = document.getElementById('filter-slot-status')?.value || '';
+  let slots = getResources('Slot').filter(sl => sl.schedule?.reference === `Schedule/${schedId}`);
+  if (statusFilter) slots = slots.filter(sl => sl.status === statusFilter);
+  document.getElementById('slot-count').textContent = `${slots.length} slot(s) en esta agenda`;
+
+  const year = slotCalRefDate.getFullYear(), month = slotCalRefDate.getMonth();
+  const monthLabel = slotCalRefDate.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  document.getElementById('slot-calendar-month').textContent = monthLabel;
+
+  const chipClass = { free: 'chip-free', busy: 'chip-busy', 'busy-unavailable': 'chip-unavailable', 'busy-tentative': 'chip-tentative' };
+
+  const byDay = {};
+  slots.forEach(s => {
+    const d = s.start?.substring(0, 10);
+    if (!d) return;
+    (byDay[d] = byDay[d] || []).push(s);
+  });
+  Object.values(byDay).forEach(list => list.sort((a, b) => (a.start || '').localeCompare(b.start || '')));
+
+  const firstOfMonth = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const offset = (firstOfMonth.getDay() || 7) - 1; // lunes=0..domingo=6
+
+  const dayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  let html = dayHeaders.map(d => `<div class="calendar-day-header">${d}</div>`).join('');
+  for (let i = 0; i < offset; i++) html += '<div class="calendar-day empty"></div>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const daySlots = byDay[dateStr] || [];
+    const cls = daySlots.length ? 'available' : 'unavailable';
+    const chips = daySlots.map(s => `
+        <div class="slot-chip ${chipClass[s.status] || 'chip-unavailable'}" title="${formatTimeOnly(s.start)}–${formatTimeOnly(s.end)} · ${s.status}">
+          <span class="slot-chip-time" onclick='editSlot(${JSON.stringify(s.id)})'>${formatTimeOnly(s.start)}</span>
+          <span class="material-icons slot-chip-del" onclick='openDeleteSched(${JSON.stringify(s.id)}, "Slot")'>close</span>
+        </div>`).join('');
+    html += `<div class="calendar-day ${cls}" data-date="${dateStr}">
+        <div class="calendar-day-num">${day}</div>
+        <div class="calendar-day-slots">${chips}</div>
+      </div>`;
+  }
+  document.getElementById('slot-calendar-grid').innerHTML = html;
 }
 
 function openSchedModal(sched = null) {
@@ -355,14 +672,13 @@ function saveSched() {
     comment: document.getElementById('sched-comment').value.trim()
   };
 
-  if (editingSchedId) { updateResource('Schedule', editingSchedId, sched); closeModal('sched-modal'); toast('success', 'Éxito', 'Schedule actualizado'); }
+  if (editingSchedId) { updateResource('Schedule', editingSchedId, sched); closeModal('sched-modal'); Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Schedule actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); }
   else {
-    if (getResource('Schedule', id)) { toast('error', 'Error', 'Ya existe un Schedule con ese ID'); return; }
+    if (getResource('Schedule', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un Schedule con ese ID' }); return; }
     createResource('Schedule', sched);
     closeModal('sched-modal');
-    toast('success', 'Éxito', 'Schedule creado');
+    Swal.fire({ icon: 'success', title: 'Creado', text: 'Schedule creado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderScheds();
 }
 
 function openSlotModal(slot = null, preSchedId = null) {
@@ -402,18 +718,16 @@ function saveSlot() {
     comment: document.getElementById('slot-comment').value.trim()
   };
 
-  if (editingSlotId) { updateResource('Slot', editingSlotId, slot); closeModal('slot-modal'); toast('success', 'Éxito', 'Slot actualizado'); }
+  if (editingSlotId) { updateResource('Slot', editingSlotId, slot); closeModal('slot-modal'); Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Slot actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); }
   else {
-    if (getResource('Slot', id)) { toast('error', 'Error', 'Ya existe un Slot con ese ID'); return; }
+    if (getResource('Slot', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un Slot con ese ID' }); return; }
     createResource('Slot', slot);
     closeModal('slot-modal');
-    toast('success', 'Éxito', 'Slot creado');
+    Swal.fire({ icon: 'success', title: 'Creado', text: 'Slot creado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderSlots();
-  renderScheds();
 }
 
-function openDeleteSched(id, type) { try { Swal.fire({ title: 'Eliminar recurso', text: '¿Eliminar este recurso? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource(type, id); toast('warning', 'Atención', 'Eliminado correctamente'); renderScheds(); renderSlots(); } }); } catch(e) { if(confirm('¿Eliminar este recurso? Esta acción es irreversible.')) { deleteResource(type, id); renderScheds(); renderSlots(); } } }
+function openDeleteSched(id, type) { try { Swal.fire({ title: 'Eliminar recurso', text: '¿Eliminar este recurso? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource(type, id); Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Eliminado correctamente', timer: 1500, showConfirmButton: false }).then(() => location.reload()); } }); } catch(e) { if(confirm('¿Eliminar este recurso? Esta acción es irreversible.')) { deleteResource(type, id); location.reload(); } } }
 </script>
 </body>
 </html>

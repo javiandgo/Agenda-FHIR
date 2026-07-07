@@ -1,0 +1,6 @@
+{
+  "resourceType": "Practitioner",
+  "id": "dr-alonso-fonseca",
+  "identifier": [{ "use": "official", "value": "777666555" }],
+  "name": [{ "family": "Fonseca", "given": ["Alonso"] }]
+}

@@ -20,6 +20,7 @@
       <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item active" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -27,7 +28,7 @@
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -258,11 +259,11 @@
         </div>
         <div class="form-group">
           <label class="form-label">Hora inicio</label>
-          <input type="time" id="role-avail-start" class="form-control" value="08:00"/>
+          <select id="role-avail-start" class="form-control"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Hora fin</label>
-          <input type="time" id="role-avail-end" class="form-control" value="17:00"/>
+          <select id="role-avail-end" class="form-control"></select>
         </div>
       </div>
     </div>
@@ -434,14 +435,29 @@ function savePrac() {
     qualification: [{ code: { coding: [{ system: 'http://snomed.info/sct', code: specVal[0], display: specVal[1] }], text: `Especialista en ${specVal[1]}` } }]
   };
 
-  if (editingPracId) { updateResource('Practitioner', editingPracId, prac); closeModal('prac-modal'); toast('success', 'Éxito', 'Practitioner actualizado'); }
+  if (editingPracId) { updateResource('Practitioner', editingPracId, prac); closeModal('prac-modal'); Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Practitioner actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); }
   else {
-    if (getResource('Practitioner', id)) { toast('error', 'Error', 'Ya existe un Practitioner con ese ID'); return; }
+    if (getResource('Practitioner', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un Practitioner con ese ID' }); return; }
     createResource('Practitioner', prac);
     closeModal('prac-modal');
-    toast('success', 'Éxito', 'Practitioner creado');
+    Swal.fire({ icon: 'success', title: 'Creado', text: 'Practitioner creado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderPracs();
+}
+
+function buildTimeOptions15(selectEl, selected) {
+  const GRID_MINUTES = 15;
+  const [sh, sm] = (selected || '00:00').split(':').map(Number);
+  const roundedMins = Math.floor((sh * 60 + sm) / GRID_MINUTES) * GRID_MINUTES;
+  const roundedSelected = `${String(Math.floor(roundedMins / 60)).padStart(2, '0')}:${String(roundedMins % 60).padStart(2, '0')}`;
+
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += GRID_MINUTES) {
+      const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      html += `<option value="${val}"${val === roundedSelected ? ' selected' : ''}>${val}</option>`;
+    }
+  }
+  selectEl.innerHTML = html;
 }
 
 function openRoleModal(role = null) {
@@ -464,8 +480,8 @@ function openRoleModal(role = null) {
   document.getElementById('role-start').value = role?.period?.start || '';
   document.getElementById('role-end').value = role?.period?.end || '';
   const avail = role?.availableTime?.[0] || {};
-  document.getElementById('role-avail-start').value = avail.availableStartTime?.substring(0, 5) || '08:00';
-  document.getElementById('role-avail-end').value = avail.availableEndTime?.substring(0, 5) || '17:00';
+  buildTimeOptions15(document.getElementById('role-avail-start'), avail.availableStartTime?.substring(0, 5) || '08:00');
+  buildTimeOptions15(document.getElementById('role-avail-end'), avail.availableEndTime?.substring(0, 5) || '17:00');
   const days = avail.daysOfWeek || ['mon', 'tue', 'wed', 'thu', 'fri'];
   document.querySelectorAll('#days-check input').forEach(cb => { cb.checked = days.includes(cb.value); });
   openModal('role-modal');
@@ -477,6 +493,10 @@ function saveRole() {
   const id = document.getElementById('role-id').value.trim().replace(/\s+/g, '-');
   const pracId = document.getElementById('role-prac').value;
   if (!id || !pracId) { toast('error', 'Error', 'ID y médico son obligatorios'); return; }
+
+  const availStart = document.getElementById('role-avail-start').value;
+  const availEnd = document.getElementById('role-avail-end').value;
+  if (availEnd <= availStart) { toast('error', 'Error', 'La hora de fin debe ser mayor a la hora de inicio'); return; }
 
   const prac = getResource('Practitioner', pracId);
   const orgId = document.getElementById('role-org').value;
@@ -492,20 +512,19 @@ function saveRole() {
     organization: orgId ? { reference: `Organization/${orgId}`, display: org?.name || orgId } : undefined,
     code: [{ coding: [{ display: document.getElementById('role-code').value }] }],
     specialty: [{ coding: [{ system: 'http://snomed.info/sct', code: specVal[0], display: specVal[1] }] }],
-    availableTime: [{ daysOfWeek: days, availableStartTime: document.getElementById('role-avail-start').value + ':00', availableEndTime: document.getElementById('role-avail-end').value + ':00' }]
+    availableTime: [{ daysOfWeek: days, availableStartTime: availStart + ':00', availableEndTime: availEnd + ':00' }]
   };
 
-  if (editingRoleId) { updateResource('PractitionerRole', editingRoleId, role); closeModal('role-modal'); toast('success', 'Éxito', 'PractitionerRole actualizado'); }
+  if (editingRoleId) { updateResource('PractitionerRole', editingRoleId, role); closeModal('role-modal'); Swal.fire({ icon: 'success', title: 'Actualizado', text: 'PractitionerRole actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); }
   else {
-    if (getResource('PractitionerRole', id)) { toast('error', 'Error', 'Ya existe un PractitionerRole con ese ID'); return; }
+    if (getResource('PractitionerRole', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un PractitionerRole con ese ID' }); return; }
     createResource('PractitionerRole', role);
     closeModal('role-modal');
-    toast('success', 'Éxito', 'PractitionerRole creado');
+    Swal.fire({ icon: 'success', title: 'Creado', text: 'PractitionerRole creado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderRoles();
 }
 
-function openDeletePrac(id, type) { try { Swal.fire({ title: 'Eliminar recurso', text: '¿Eliminar este recurso? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource(type, id); toast('warning', 'Atención', 'Recurso eliminado'); renderPracs(); renderRoles(); } }); } catch(e) { if(confirm('¿Eliminar este recurso? Esta acción es irreversible.')) { deleteResource(type, id); renderPracs(); renderRoles(); } } }
+function openDeletePrac(id, type) { try { Swal.fire({ title: 'Eliminar recurso', text: '¿Eliminar este recurso? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource(type, id); Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Recurso eliminado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); } }); } catch(e) { if(confirm('¿Eliminar este recurso? Esta acción es irreversible.')) { deleteResource(type, id); location.reload(); } } }
 </script>
 </body>
 </html>

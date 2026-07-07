@@ -20,6 +20,7 @@
       <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -27,7 +28,7 @@
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -101,12 +102,13 @@
 
         <div class="form-section-title">Relaciones</div>
         <div class="form-group">
-          <label class="form-label">Organización proveedora</label>
-          <select id="hs-org" class="form-control"></select>
+          <label class="form-label">Organización proveedora (Prestador)</label>
+          <select id="hs-org" class="form-control" onchange="onHsOrgChange()"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Sede (Location) <span class="required">*</span></label>
           <select id="hs-location" class="form-control" required></select>
+          <span class="form-helper">Se filtra según la organización seleccionada (Location.managingOrganization)</span>
         </div>
 
         <div class="form-section-title">Tipos de Servicio</div>
@@ -169,15 +171,16 @@ function toast(icon, title, text) {
   try { if (typeof Swal !== 'undefined') Swal.fire({ icon, title, text, timer: 2000, showConfirmButton: false }); else alert(title); } catch(e) {}
 }
 
-const SERVICE_TYPES = [
-  { code: '394814009', display: 'Medicina General' },
-  { code: '394537008', display: 'Pediatría' },
-  { code: '394586005', display: 'Gineco Obstetricia' },
-  { code: '394810000', display: 'Nefrología' },
-  { code: '394582007', display: 'Gastroenterología' },
-  { code: '394593009', display: 'Oncología' },
-  { code: '394802001', display: 'Cardiología' },
-];
+function getServiceTypes() {
+  const seen = {};
+  (getResources('HealthcareService') || []).forEach(hs => {
+    (hs.type || []).forEach(t => {
+      const c = t.coding?.[0];
+      if (c?.code && !seen[c.code]) seen[c.code] = { code: c.code, display: c.display || c.code };
+    });
+  });
+  return Object.values(seen);
+}
 
 let editingHsId = null;
 
@@ -226,6 +229,25 @@ function renderHs(filter = '') {
 
 function filterHs() { renderHs(document.getElementById('search-hs').value); }
 
+function getProviderOrgs() {
+  const orgs = getResources('Organization');
+  const providers = orgs.filter(o => o.type?.[0]?.coding?.[0]?.code === 'prov');
+  return providers.length ? providers : orgs;
+}
+
+function populateHsLocationOptions(orgId, selectedLocId) {
+  const allLocs = getResources('Location');
+  const locs = orgId ? allLocs.filter(l => l.managingOrganization?.reference === `Organization/${orgId}`) : allLocs;
+  const sel = document.getElementById('hs-location');
+  sel.innerHTML = locs.length
+    ? locs.map(l => `<option value="${l.id}" ${l.id === selectedLocId ? 'selected' : ''}>${l.name || l.id}</option>`).join('')
+    : '<option value="">Esta organización no tiene sedes registradas</option>';
+}
+
+function onHsOrgChange() {
+  populateHsLocationOptions(document.getElementById('hs-org').value);
+}
+
 function openHsModal(hs = null) {
   editingHsId = hs?.id || null;
   document.getElementById('hs-modal-title').textContent = hs ? 'Editar HealthcareService' : 'Nuevo HealthcareService';
@@ -235,14 +257,15 @@ function openHsModal(hs = null) {
   document.getElementById('hs-active').value = String(hs?.active !== false);
   document.getElementById('hs-comment').value = hs?.comment || '';
 
-  const orgs = getResources('Organization');
-  document.getElementById('hs-org').innerHTML = orgs.map(o => `<option value="${o.id}" ${hs?.providedBy?.reference?.includes(o.id) ? 'selected' : ''}>${o.name || o.id}</option>`).join('');
+  const orgs = getProviderOrgs();
+  const currentOrgId = hs?.providedBy?.reference?.replace('Organization/', '') || orgs[0]?.id || '';
+  document.getElementById('hs-org').innerHTML = orgs.map(o => `<option value="${o.id}" ${o.id === currentOrgId ? 'selected' : ''}>${o.name || o.id}</option>`).join('');
 
-  const locs = getResources('Location');
-  document.getElementById('hs-location').innerHTML = locs.map(l => `<option value="${l.id}" ${hs?.location?.[0]?.reference?.includes(l.id) ? 'selected' : ''}>${l.name || l.id}</option>`).join('');
+  const currentLocId = hs?.location?.[0]?.reference?.replace('Location/', '') || '';
+  populateHsLocationOptions(currentOrgId, currentLocId);
 
   const selectedCodes = (hs?.type || []).map(t => t.coding?.[0]?.code).filter(Boolean);
-  document.getElementById('hs-types-checkboxes').innerHTML = SERVICE_TYPES.map(st =>
+  document.getElementById('hs-types-checkboxes').innerHTML = getServiceTypes().map(st =>
     `<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
       <input type="checkbox" value="${st.code}" ${selectedCodes.includes(st.code) ? 'checked' : ''}/>
       ${st.display}
@@ -258,12 +281,13 @@ function saveHs() {
   if (!id || !name) { toast('error', 'Error', 'ID y nombre son obligatorios'); return; }
 
   const locId = document.getElementById('hs-location').value;
+  if (!locId) { toast('error', 'Error', 'Selecciona una sede (Location); la organización elegida no tiene sedes registradas'); return; }
   const loc = getResource('Location', locId);
   const orgId = document.getElementById('hs-org').value;
   const org = getResource('Organization', orgId);
 
   const selectedTypes = Array.from(document.querySelectorAll('#hs-types-checkboxes input:checked')).map(cb => {
-    const st = SERVICE_TYPES.find(s => s.code === cb.value);
+    const st = getServiceTypes().find(s => s.code === cb.value);
     return st ? { coding: [{ system: 'http://snomed.info/sct', code: st.code, display: st.display }], text: st.display } : null;
   }).filter(Boolean);
 
@@ -279,14 +303,14 @@ function saveHs() {
 
   if (editingHsId) {
     updateResource('HealthcareService', editingHsId, hs);
-    toast('success', 'Éxito', 'HealthcareService actualizado');
+    closeModal('hs-modal');
+    Swal.fire({ icon: 'success', title: 'Actualizado', text: 'HealthcareService actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   } else {
-    if (getResource('HealthcareService', id)) { toast('error', 'Error', 'Ya existe un HealthcareService con ese ID'); return; }
+    if (getResource('HealthcareService', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un HealthcareService con ese ID' }); return; }
     createResource('HealthcareService', hs);
-    toast('success', 'Éxito', 'HealthcareService creado');
+    closeModal('hs-modal');
+    Swal.fire({ icon: 'success', title: 'Creado', text: 'HealthcareService creado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  closeModal('hs-modal');
-  renderHs(); renderHsStats();
 }
 
 function viewHs(id) {
@@ -323,8 +347,8 @@ function editHs(id) { const h = getResource('HealthcareService', id); if (h) ope
 function deleteHsConfirm(id) {
   try {
     Swal.fire({ title: 'Eliminar HealthcareService', text: `¿Eliminar el servicio "${id}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Eliminar' })
-    .then(r => { if (r.isConfirmed) { deleteResource('HealthcareService', id); renderHs(); renderHsStats(); toast('warning', 'Eliminado', ''); } });
-  } catch(e) { if (confirm('¿Eliminar?')) { deleteResource('HealthcareService', id); renderHs(); renderHsStats(); } }
+    .then(r => { if (r.isConfirmed) { deleteResource('HealthcareService', id); Swal.fire({ icon: 'success', title: 'Eliminado', text: '', timer: 1500, showConfirmButton: false }).then(() => location.reload()); } });
+  } catch(e) { if (confirm('¿Eliminar?')) { deleteResource('HealthcareService', id); location.reload(); } }
 }
 </script>
 </body>

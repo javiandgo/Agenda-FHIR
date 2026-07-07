@@ -250,11 +250,19 @@
           <!-- Número de confirmación -->
           <div class="confirmation-number">
             <p>Número de confirmación</p>
-            <h2>ACM-2026-04521</h2>
+            <h2>---</h2>
           </div>
 
           <!-- Detalles de la cita -->
           <div class="appointment-details">
+            <div class="detail-row">
+              <span class="material-icons">person</span>
+              <div class="detail-content">
+                <h3>Paciente</h3>
+                <p>---</p>
+              </div>
+            </div>
+
             <div class="detail-row">
               <span class="material-icons">event</span>
               <div class="detail-content">
@@ -267,7 +275,7 @@
               <span class="material-icons">person</span>
               <div class="detail-content">
                 <h3>Médico</h3>
-                <p>Dr. Gregorio Casas</p>
+                <p>Asignado</p>
               </div>
             </div>
 
@@ -275,7 +283,7 @@
               <span class="material-icons">medical_services</span>
               <div class="detail-content">
                 <h3>Especialidad</h3>
-                <p>Pediatría - Primera vez</p>
+                <p>---</p>
               </div>
             </div>
 
@@ -283,7 +291,7 @@
               <span class="material-icons">location_on</span>
               <div class="detail-content">
                 <h3>Ubicación</h3>
-                <p>Clínica Norte - Carrera 7 #100-50, Bogotá</p>
+                <p>---</p>
               </div>
             </div>
 
@@ -291,7 +299,7 @@
               <span class="material-icons">credit_card</span>
               <div class="detail-content">
                 <h3>Cobertura</h3>
-                <p>Salud Completa - EPS</p>
+                <p>---</p>
               </div>
             </div>
           </div>
@@ -341,14 +349,13 @@
     <script src="js/config.js"></script>
       <script src="js/main.js"></script>
     <script>
-      const doctorNames = { casas: 'Dr. Gregorio Casas', luna: 'Dr. Elmer Luna', chavez: 'Dr. Luis Chávez', silva: 'Dr. Alvaro Silva', narvaez: 'Dr. Diego Narváez', fonseca: 'Dr. Alonso Fonseca' };
-      const specialtyNames = { pediatria: 'Pediatría', obstetricia: 'Ginecología y Obstetricia', cardiologia: 'Cardiología', nefrologia: 'Nefrología', oncologia: 'Oncología', gastroenterologia: 'Gastroenterología' };
-
       document.addEventListener('DOMContentLoaded', async () => {
         const params = new URLSearchParams(window.location.search);
         const aptId = params.get('id');
+        let confNumber = params.get('conf') || '';
+        let displayPatient = params.get('patientName') || 'Pendiente';
         let displayDoctor = 'Asignado';
-        let displaySpecialty = 'Medicina General';
+        let displaySpecialty = '---';
         let formattedDate = 'Pendiente';
         let displayTime = '';
 
@@ -357,6 +364,8 @@
             const resp = await fetch(`${API_BASE_URL}/Appointment/${aptId}`);
             if (resp.ok) {
               const apt = await resp.json();
+              const confId = (apt.identifier || []).find(i => i.system === 'http://acme.salud/confirmacion');
+              if (confId) confNumber = confId.value;
               const start = apt.start || '';
               const datePart = start.split('T')[0];
               const timePart = start.split('T')[1]?.substring(0, 5) || '';
@@ -365,13 +374,22 @@
                 const d = new Date(datePart + 'T12:00:00');
                 formattedDate = d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
               }
-              const pracRef = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'))?.actor?.reference || '';
-              const pracId = pracRef.replace('Practitioner/', '');
-              displayDoctor = doctorNames[pracId] || pracId || 'Asignado';
-              const svcType = apt.serviceType?.[0]?.coding?.[0]?.code || '';
-              displaySpecialty = specialtyNames[svcType] || svcType || 'Medicina General';
 
-              document.querySelector('.confirmation-number h2').textContent = `ACM-2026-${String(aptId).replace(/[^0-9]/g, '').substring(0,5).padStart(5, '0')}`;
+              if (apt.serviceType?.[0]?.text) {
+                displaySpecialty = apt.serviceType[0].text;
+              } else if (apt.serviceType?.[0]?.coding?.[0]?.display) {
+                displaySpecialty = apt.serviceType[0].coding[0].display;
+              }
+
+              const patRef = apt.participant?.find(p => p.actor?.reference?.startsWith('Patient/'))?.actor;
+              if (patRef) displayPatient = patRef.display || patRef.reference?.replace('Patient/', '') || displayPatient;
+
+              const pracRef = apt.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'))?.actor;
+              if (pracRef) {
+                displayDoctor = pracRef.display || pracRef.reference?.replace('Practitioner/', '') || 'Asignado';
+              }
+
+              document.querySelector('.confirmation-number h2').textContent = confNumber || `ACM-2026-${aptId.replace(/[^0-9a-z]/gi, '').substring(0, 5).toUpperCase().padStart(5, '0')}`;
             }
           } catch(e) {
             console.warn('Could not fetch appointment, using URL params fallback', e);
@@ -379,13 +397,25 @@
         }
 
         if (!displayTime) {
-          const doctor = params.get('doctor') || 'Asignado';
-          const specialty = params.get('specialty') || 'Medicina General';
+          displaySpecialty = params.get('specialtyName') || params.get('specialty') || '---';
+          displayPatient = params.get('patientName') || displayPatient;
+          const doctor = params.get('doctor') || '';
           const date = params.get('date') || '';
-          const time = params.get('time') || '';
-          displayDoctor = doctorNames[doctor] || doctor;
-          displaySpecialty = specialtyNames[specialty] || specialty;
-          displayTime = time;
+          displayTime = params.get('time') || '';
+          if (doctor) {
+            try {
+              const pracResp = await fetch(`${API_BASE_URL}/Practitioner/${doctor}`);
+              if (pracResp.ok) {
+                const p = await pracResp.json();
+                const name = p.name?.[0];
+                displayDoctor = (name?.prefix?.[0] || 'Dr.') + ' ' + (name?.family || '') + ' ' + (name?.given?.[0] || '');
+              } else {
+                displayDoctor = doctor;
+              }
+            } catch(e) {
+              displayDoctor = doctor;
+            }
+          }
           if (date) {
             const d = new Date(date + 'T12:00:00');
             formattedDate = d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -393,20 +423,21 @@
         }
 
         const detailEls = document.querySelectorAll('.detail-content p');
-        if (detailEls.length >= 4) {
-          detailEls[0].textContent = formattedDate + (displayTime ? ` - ${displayTime}` : '');
-          detailEls[1].textContent = displayDoctor;
-          detailEls[2].textContent = displaySpecialty;
+        if (detailEls.length >= 6) {
+          detailEls[0].textContent = displayPatient;
+          detailEls[1].textContent = formattedDate + (displayTime ? ` - ${displayTime}` : '');
+          detailEls[2].textContent = displayDoctor;
+          detailEls[3].textContent = displaySpecialty;
         }
 
         const downloadBtn = document.querySelector('md-filled-button');
         if (downloadBtn) {
           downloadBtn.addEventListener('click', () => {
-            alert(`Resumen de tu cita:\n\nEspecialidad: ${displaySpecialty}\nMédico: ${displayDoctor}\nFecha: ${formattedDate}\nHora: ${displayTime}`);
+            alert(`Resumen de tu cita:\n\nPaciente: ${displayPatient}\nEspecialidad: ${displaySpecialty}\nMédico: ${displayDoctor}\nFecha: ${formattedDate}\nHora: ${displayTime}`);
           });
         }
 
-        console.log('Confirmación cargada:', { aptId, displaySpecialty, displayDoctor, formattedDate, displayTime });
+        console.log('Confirmación cargada:', { aptId, confNumber, displayPatient, displaySpecialty, displayDoctor, formattedDate, displayTime });
       });
     </script>
   </body>

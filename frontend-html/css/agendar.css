@@ -154,6 +154,86 @@ md-outlined-text-field {
 }
 
 /* ==========================================
+   Patient ID Card (Step 0)
+   ========================================== */
+.patient-id-card {
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.patient-id-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-row {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-end;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-row .form-group:last-child {
+  flex: 0 0 auto;
+}
+
+.form-group .form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: 6px;
+}
+
+.form-group .form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  background: white;
+  color: var(--md-sys-color-on-surface);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-group .form-control:focus {
+  border-color: var(--md-sys-color-primary);
+}
+
+.patient-result-card {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.patient-result-card.success {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.patient-result-card.error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+  }
+  .form-row .form-group:last-child {
+    flex: 1;
+  }
+}
+
+/* ==========================================
    Specialty Grid (Step 1)
    ========================================== */
 .specialty-grid {

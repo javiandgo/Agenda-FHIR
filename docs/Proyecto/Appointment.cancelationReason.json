@@ -1,0 +1,16 @@
+{
+  "resourceType": "Appointment",
+  "id": "cita-nefro-001",
+  "status": "cancelled",
+  "cancelationReason": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/appointment-cancellation-reason",
+        "code": "pat-cpp",
+        "display": "Patient: Cancelled via Patient Portal"
+      }
+    ]
+  },
+  "comment": "El paciente cancela por motivos personales, requiere reprogramar."
+  
+}

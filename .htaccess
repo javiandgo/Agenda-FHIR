@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteBase /Agenda-FHIR/
+
+# /agenda/* → frontend-html/*
+RewriteRule ^agenda$ agenda/ [R=301,L]
+RewriteRule ^agenda/(.*)$ frontend-html/$1 [L]
+
+# /panel/* → backend-html/*
+RewriteRule ^panel$ panel/ [R=301,L]
+RewriteRule ^panel/(.*)$ backend-html/$1 [L]

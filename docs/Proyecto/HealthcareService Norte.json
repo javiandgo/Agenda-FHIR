@@ -1,0 +1,65 @@
+[
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-medicina-general-norte",
+    "location": [
+      {
+        "reference": "Location/sede-norte"
+      }
+    ],
+    "name": "Medicina General - Sede Norte",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394802001",
+            "display": "medicina general"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-pediatria-norte",
+    "location": [
+      {
+        "reference": "Location/sede-norte"
+      }
+    ],
+    "name": "Pediatría - Sede Norte",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "310066004",
+            "display": "servicio de pediatría"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-obstetricia-norte",
+    "location": [
+      {
+        "reference": "Location/sede-norte"
+      }
+    ],
+    "name": "Obstetricia - Sede Norte",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "408470005",
+            "display": "obstetricia"
+          }
+        ]
+      }
+    ]
+  }
+]

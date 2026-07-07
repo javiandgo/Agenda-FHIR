@@ -41,7 +41,7 @@
             <a href="#contacto" class="nav-link">Contacto</a>
           </nav>
           <div class="actions">
-            <md-filled-button href="../backend-html/login.html">
+            <md-filled-button href="../panel/login.html">
               <span class="material-icons" slot="icon">person</span>
               Iniciar Sesión
             </md-filled-button>
@@ -107,96 +107,7 @@
       <div class="container">
         <h2 class="section-title">Nuestras Clínicas</h2>
 
-        <div class="clinicas-grid">
-          <!-- Clínica Norte -->
-          <md-outlined-card class="clinica-card">
-            <div class="clinica-header">
-              <span class="material-icons clinica-icon">business</span>
-              <h3>Clínica Norte</h3>
-            </div>
-            <div class="clinica-body">
-              <div class="info-row">
-                <span class="material-icons small">pin_drop</span>
-                <span>Carrera 7 #100-50</span>
-              </div>
-              <div class="info-row">
-                <span class="material-icons small">phone</span>
-                <span>+57 1 234 5679</span>
-              </div>
-              <div class="servicios-list">
-                <h4>Servicios:</h4>
-                <ul>
-                  <li>Medicina General</li>
-                  <li>Pediatría</li>
-                  <li>Obstetricia</li>
-                </ul>
-              </div>
-              <md-text-button>
-                <span class="material-icons" slot="icon">map</span>
-                Ver Mapa
-              </md-text-button>
-            </div>
-          </md-outlined-card>
-
-          <!-- Clínica Centro -->
-          <md-outlined-card class="clinica-card">
-            <div class="clinica-header">
-              <span class="material-icons clinica-icon">business</span>
-              <h3>Clínica Centro</h3>
-            </div>
-            <div class="clinica-body">
-              <div class="info-row">
-                <span class="material-icons small">pin_drop</span>
-                <span>Calle 45 #15-30</span>
-              </div>
-              <div class="info-row">
-                <span class="material-icons small">phone</span>
-                <span>+57 1 234 5680</span>
-              </div>
-              <div class="servicios-list">
-                <h4>Servicios:</h4>
-                <ul>
-                  <li>Medicina General</li>
-                  <li>Nefrología</li>
-                  <li>Gastroenterología</li>
-                </ul>
-              </div>
-              <md-text-button>
-                <span class="material-icons" slot="icon">map</span>
-                Ver Mapa
-              </md-text-button>
-            </div>
-          </md-outlined-card>
-
-          <!-- Clínica Sur -->
-          <md-outlined-card class="clinica-card">
-            <div class="clinica-header">
-              <span class="material-icons clinica-icon">business</span>
-              <h3>Clínica Sur</h3>
-            </div>
-            <div class="clinica-body">
-              <div class="info-row">
-                <span class="material-icons small">pin_drop</span>
-                <span>Autopista Sur #85-20</span>
-              </div>
-              <div class="info-row">
-                <span class="material-icons small">phone</span>
-                <span>+57 1 234 5681</span>
-              </div>
-              <div class="servicios-list">
-                <h4>Servicios:</h4>
-                <ul>
-                  <li>Medicina General</li>
-                  <li>Oncología</li>
-                  <li>Cardiología</li>
-                </ul>
-              </div>
-              <md-text-button>
-                <span class="material-icons" slot="icon">map</span>
-                Ver Mapa
-              </md-text-button>
-            </div>
-          </md-outlined-card>
+        <div class="clinicas-grid" id="clinicas-grid">
         </div>
       </div>
     </section>
@@ -266,18 +177,68 @@
       document.addEventListener("DOMContentLoaded", async function() {
         const badge = document.createElement('div');
         badge.style.cssText = 'position:fixed;top:16px;right:16px;display:flex;align-items:center;gap:6px;background:#e8f5e9;color:#2e7d32;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:1000;border:1px solid #a5d6a7;font-family:Roboto,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.1)';
-        badge.innerHTML = '<span style="font-size:14px">●</span> FHIR API: Conectando...';
+        badge.innerHTML = '<span style="font-size:14px">●</span> Cargando...';
         document.body.appendChild(badge);
 
         try {
-          const resp = await fetch(API_BASE_URL + '/metadata');
-          const data = await resp.json();
+          const [locResp, hsResp] = await Promise.all([
+            fetch(API_BASE_URL + '/Location'),
+            fetch(API_BASE_URL + '/HealthcareService')
+          ]);
+
+          if (locResp.ok) {
+            const locBundle = await locResp.json();
+            let hsByLoc = {};
+            if (hsResp.ok) {
+              const hsBundle = await hsResp.json();
+              (hsBundle.entry || []).forEach(e => {
+                const r = e.resource;
+                (r.location || []).forEach(l => {
+                  const lid = l.reference?.replace('Location/', '');
+                  if (lid) {
+                    if (!hsByLoc[lid]) hsByLoc[lid] = [];
+                    hsByLoc[lid].push(r.name || r.type?.[0]?.coding?.[0]?.display || 'Servicio');
+                  }
+                });
+              });
+            }
+
+            const grid = document.getElementById('clinicas-grid');
+            grid.innerHTML = (locBundle.entry || []).map(e => {
+              const r = e.resource;
+              const addr = r.address || {};
+              const telecom = r.telecom || [];
+              const phone = telecom.find(t => t.system === 'phone')?.value || '';
+              const services = hsByLoc[r.id] || [];
+              return `
+                <md-outlined-card class="clinica-card">
+                  <div class="clinica-header">
+                    <span class="material-icons clinica-icon">business</span>
+                    <h3>${r.name || r.id}</h3>
+                  </div>
+                  <div class="clinica-body">
+                    <div class="info-row">
+                      <span class="material-icons small">pin_drop</span>
+                      <span>${addr.line?.join(', ') || ''}, ${addr.city || ''}</span>
+                    </div>
+                    ${phone ? `<div class="info-row"><span class="material-icons small">phone</span><span>${phone}</span></div>` : ''}
+                    ${services.length > 0 ? `
+                      <div class="servicios-list">
+                        <h4>Servicios:</h4>
+                        <ul>${services.map(s => `<li>${s}</li>`).join('')}</ul>
+                      </div>` : ''}
+                    <md-text-button><span class="material-icons" slot="icon">map</span>Ver Mapa</md-text-button>
+                  </div>
+                </md-outlined-card>`;
+            }).join('');
+          }
+
           badge.innerHTML = '<span style="font-size:14px;color:#2e7d32">●</span> FHIR API: Conectado';
           badge.style.background = '#e8f5e9';
           badge.style.color = '#2e7d32';
           badge.style.borderColor = '#a5d6a7';
         } catch (e) {
-          badge.innerHTML = '<span style="font-size:14px;color:#c62828">●</span> FHIR API: Offline (usando demo local)';
+          badge.innerHTML = '<span style="font-size:14px;color:#c62828">●</span> FHIR API: Offline';
           badge.style.background = '#ffebee';
           badge.style.color = '#c62828';
           badge.style.borderColor = '#ef9a9a';

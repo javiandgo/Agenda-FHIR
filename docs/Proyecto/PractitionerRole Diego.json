@@ -1,0 +1,14 @@
+{
+  "resourceType": "PractitionerRole",
+  "id": "role-oncologia-sur",
+  "practitioner": { "reference": "Practitioner/dr-diego-narvaez" },
+  "organization": { "reference": "Organization/acme-salud" },
+  "specialty": [
+    {
+      "coding": [
+        { "system": "http://snomed.info/sct", "code": "394592004", "display": "Medical oncology" }
+      ]
+    }
+  ],
+  "healthcareService": [{ "reference": "HealthcareService/serv-oncologia-sur" }]
+}

@@ -83,6 +83,7 @@
       <a class="nav-item active" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -90,7 +91,7 @@
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -200,13 +201,6 @@
         <div class="form-group">
           <label class="form-label">Especialidad / Servicio <span class="required">*</span></label>
           <select id="apt-service" class="form-control" required onchange="loadPractitionersByService();recalcDuration()">
-            <option value="394814009|Medicina General|general">Medicina General</option>
-            <option value="394537008|Pediatría|especializada">Pediatría</option>
-            <option value="394586005|Gineco Obstetricia|especializada">Gineco Obstetricia</option>
-            <option value="394810000|Nefrología|especializada">Nefrología</option>
-            <option value="394582007|Gastroenterología|especializada">Gastroenterología</option>
-            <option value="394593009|Oncología|especializada">Oncología</option>
-            <option value="394802001|Cardiología|especializada">Cardiología</option>
           </select>
         </div>
         <div class="form-group full-width">
@@ -343,6 +337,7 @@
 <div class="toast-container"></div>
 <script src="js/fhir-client.js"></script>
 <script src="js/config.js"></script>
+<script src="js/duracion-convenio.js"></script>
 <script src="js/fhir-inspector.js"></script>
 <script src="js/fhir-inspector-ui.js"></script>
 <script>
@@ -350,9 +345,29 @@ const session = requireAuth(['admin']);
 if (session) {
   renderSidebarUser(session);
   function initPage() {
+    populateServiceSelect();
     renderApts();
     renderAptStats();
     if (new URLSearchParams(location.search).get('new')) openAptModal();
+  }
+
+  function populateServiceSelect() {
+    const sel = document.getElementById('apt-service');
+    const services = getResources('HealthcareService') || [];
+    const seen = {};
+    sel.innerHTML = '<option value="">Seleccionar servicio</option>';
+    services.forEach(hs => {
+      (hs.type || []).forEach(t => {
+        const c = t.coding?.[0];
+        if (!c?.code || seen[c.code]) return;
+        seen[c.code] = true;
+        const cat = getServiceCategory(c.code);
+        const opt = document.createElement('option');
+        opt.value = `${c.code}|${c.display || c.code}|${cat}`;
+        opt.textContent = c.display || c.code;
+        sel.appendChild(opt);
+      });
+    });
   }
   if (Object.keys(dataCache).length > 0) {
     initPage();
@@ -484,28 +499,8 @@ function openAptModal(apt = null) {
   openModal('apt-modal');
 }
 
-// Tabla de duraciones según convenio ACME Salud (minutos)
-// Filas: tipo de consulta | Columnas: [Salud Cooperativa, Salud Completa]
-const DURACION_CONVENIO = {
-  'ROUTINE':            { general: { 'ins-salud-cooperativa': 30, 'ins-salud-completa': 45 }, especializada: { 'ins-salud-cooperativa': 45, 'ins-salud-completa': 60 } },
-  'FOLLOWUP':           { general: { 'ins-salud-cooperativa': 20, 'ins-salud-completa': 30 }, especializada: { 'ins-salud-cooperativa': 30, 'ins-salud-completa': 45 } },
-  'TELEMED_ROUTINE':    { general: { 'ins-salud-cooperativa': 15, 'ins-salud-completa': 25 }, especializada: { 'ins-salud-cooperativa': 20, 'ins-salud-completa': 30 } },
-  'TELEMED_FOLLOWUP':   { general: { 'ins-salud-cooperativa': 15, 'ins-salud-completa': 25 }, especializada: { 'ins-salud-cooperativa': 20, 'ins-salud-completa': 30 } },
-};
-
-function getInsurerId(cov) {
-  const payorRef = cov?.payor?.[0]?.reference || '';
-  if (payorRef.includes('ins-salud-completa') || (cov?.payor?.[0]?.display || '').toLowerCase().includes('completa')) return 'ins-salud-completa';
-  if (payorRef.includes('ins-salud-cooperativa') || (cov?.payor?.[0]?.display || '').toLowerCase().includes('cooperativa')) return 'ins-salud-cooperativa';
-  return null;
-}
-
-function calcularDuracion(aptTypeCode, serviceCategory, insurerId) {
-  const tipoMap = DURACION_CONVENIO[aptTypeCode];
-  if (!tipoMap || !insurerId) return null;
-  const catMap = tipoMap[serviceCategory] || tipoMap['general'];
-  return catMap[insurerId] || null;
-}
+// DURACION_CONVENIO, getInsurerId y calcularDuracion viven en js/duracion-convenio.js
+// (compartido con el portal del paciente en frontend-html/js/duracion-convenio.js)
 
 function recalcDuration() {
   const patId = document.getElementById('apt-patient').value;
@@ -628,19 +623,17 @@ function saveApt() {
   if (editingAptId) {
     updateResource('Appointment', editingAptId, apt);
     closeModal('apt-modal');
-    toast('success', 'Éxito', 'Appointment actualizado');
+    Swal.fire({ icon: 'success', title: 'Actualizada', text: 'Appointment actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   } else {
-    if (getResource('Appointment', id)) { toast('error', 'Error', 'Ya existe un Appointment con ese ID'); return; }
+    if (getResource('Appointment', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un Appointment con ese ID' }); return; }
     createResource('Appointment', apt);
     // Marcar slot como busy
     if (slotId) { const slot = getResource('Slot', slotId); if (slot) { slot.status = 'busy'; updateResource('Slot', slotId, slot); } }
     // Generar AppointmentResponse automáticamente
     generateAppointmentResponse(apt, pat, prac);
     closeModal('apt-modal');
-    toast('success', 'Éxito', 'Cita agendada exitosamente. AppointmentResponse generada.');
+    Swal.fire({ icon: 'success', title: 'Agendada', text: 'Cita agendada exitosamente. AppointmentResponse generada.', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderApts();
-  renderAptStats();
 }
 
 function generateAppointmentResponse(apt, pat, prac) {
@@ -750,10 +743,8 @@ function markFulfilled(id) {
   if (!apt) return;
   apt.status = 'fulfilled';
   updateResource('Appointment', id, apt);
-  toast('success', 'Éxito', 'Cita marcada como atendida (fulfilled)');
   closeModal('view-apt-modal');
-  renderApts();
-  renderAptStats();
+  Swal.fire({ icon: 'success', title: 'Atendida', text: 'Cita marcada como atendida (fulfilled)', timer: 1500, showConfirmButton: false }).then(() => location.reload());
 }
 
 // ==========================================
@@ -807,13 +798,11 @@ function confirmCancel() {
   }
 
   closeModal('cancel-apt-modal');
-  toast('warning', 'Atención', '');
-  renderApts();
-  renderAptStats();
+  Swal.fire({ icon: 'warning', title: 'Cancelada', text: 'Cita cancelada y slot liberado', timer: 1500, showConfirmButton: false }).then(() => location.reload());
 }
 
 function editApt(id) { const a = getResource('Appointment', id); if (a) openAptModal(a); }
-function openDeleteApt(id) { try { Swal.fire({ title: 'Eliminar Appointment', text: '¿Eliminar permanentemente esta cita del sistema FHIR?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Appointment', id); deleteResource('AppointmentResponse', `apr-${id}`); toast('warning', 'Atención', 'Appointment eliminado'); renderApts(); renderAptStats(); } }); } catch(e) { if(confirm('¿Eliminar permanentemente esta cita del sistema FHIR?')) { deleteResource('Appointment', id); deleteResource('AppointmentResponse', `apr-${id}`); renderApts(); renderAptStats(); } } }
+function openDeleteApt(id) { try { Swal.fire({ title: 'Eliminar Appointment', text: '¿Eliminar permanentemente esta cita del sistema FHIR?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Appointment', id); deleteResource('AppointmentResponse', `apr-${id}`); Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Appointment eliminado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); } }); } catch(e) { if(confirm('¿Eliminar permanentemente esta cita del sistema FHIR?')) { deleteResource('Appointment', id); deleteResource('AppointmentResponse', `apr-${id}`); location.reload(); } } }
 </script>
 </body>
 </html>

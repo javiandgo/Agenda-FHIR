@@ -1,8 +1,27 @@
+const FHIR_INSPECTOR_STORAGE_KEY = 'fhir_inspector_logs';
+
 class FHIRInspector {
     constructor() {
-        this.logs = [];
+        this.logs = this._loadLogs();
         this.listeners = [];
         this.maxLogs = 100;
+    }
+
+    _loadLogs() {
+        try {
+            const raw = localStorage.getItem(FHIR_INSPECTOR_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    _saveLogs() {
+        try {
+            localStorage.setItem(FHIR_INSPECTOR_STORAGE_KEY, JSON.stringify(this.logs));
+        } catch (e) {
+            // Cuota de localStorage excedida u otro error: se conserva el log en memoria.
+        }
     }
 
     async request(method, endpoint, body = null) {
@@ -10,6 +29,7 @@ class FHIRInspector {
         const logEntry = {
             id: 'log-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
             timestamp: new Date().toISOString(),
+            source: (typeof location !== 'undefined' ? location.pathname.split('/').pop() : '') || 'index.html',
             request: {
                 method: method.toUpperCase(),
                 url: url,
@@ -69,6 +89,7 @@ class FHIRInspector {
 
         this.logs.unshift(logEntry);
         if (this.logs.length > this.maxLogs) this.logs.pop();
+        this._saveLogs();
         this.notify(logEntry);
         return logEntry;
     }
@@ -81,6 +102,7 @@ class FHIRInspector {
     getLogs() { return this.logs; }
     clearLogs() {
         this.logs = [];
+        this._saveLogs();
         this.notify(null);
     }
     onLog(callback) { this.listeners.push(callback); }

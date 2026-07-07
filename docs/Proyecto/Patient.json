@@ -1,0 +1,36 @@
+{
+  "resourceType": "Patient",
+  "id": "paciente-001",
+  "identifier": [
+    {
+      "use": "official",
+      "type": {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+            "code": "CC",
+            "display": "Cédula de Ciudadanía"
+          }
+        ]
+      },
+      "value": "10102020"
+    }
+  ],
+  "active": true,
+  "name": [
+    {
+      "use": "official",
+      "family": "Pérez",
+      "given": ["Juan", "Sebastián"]
+    }
+  ],
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "3001234567",
+      "use": "mobile"
+    }
+  ],
+  "gender": "male",
+  "birthDate": "1990-05-15"
+}

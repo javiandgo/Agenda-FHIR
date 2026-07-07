@@ -1,0 +1,26 @@
+{
+  "resourceType": "Practitioner",
+  "id": "dr-gregorio-casas",
+  "identifier": [
+    {
+      "use": "official",
+      "type": {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+            "code": "MD",
+            "display": "Medical License Number"
+          }
+        ]
+      },
+      "value": "111222333"
+    }
+  ],
+  "name": [
+    {
+      "family": "Casas",
+      "given": ["Gregorio"]
+    }
+  ],
+  "gender": "male"
+}

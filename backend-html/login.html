@@ -42,44 +42,64 @@
       <!-- Demo credentials hint -->
       <div class="alert alert-info" id="demo-hint" style="font-size:12px;margin-bottom:16px">
         <span class="material-icons" style="font-size:16px">info</span>
-        <div>
-          <strong>Demo Admin:</strong> admin@acmesalud.co / admin123<br/>
-          <strong>Demo Paciente:</strong> paciente@acmesalud.co / paciente123
+        <div id="hint-text">
+          <strong>Demo Admin:</strong> admin@acmesalud.co / admin123
         </div>
       </div>
 
       <!-- Formulario -->
       <form id="login-form" onsubmit="doLogin(event)">
-        <div class="form-group" style="margin-bottom:16px">
-          <label class="form-label">Correo electrónico</label>
-          <input type="email" id="login-email" class="form-control" placeholder="correo@ejemplo.co"
-                 value="admin@acmesalud.co" autocomplete="username" required/>
+
+        <!-- Admin fields -->
+        <div id="admin-fields">
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email" id="login-email" class="form-control" placeholder="correo@ejemplo.co"
+                   value="admin@acmesalud.co" autocomplete="username" required/>
+          </div>
+          <div class="form-group" style="margin-bottom:20px">
+            <label class="form-label">Contraseña</label>
+            <div style="position:relative">
+              <input type="password" id="login-password" class="form-control" placeholder="••••••••"
+                     value="admin123" autocomplete="current-password" required style="padding-right:44px"/>
+              <button type="button" onclick="togglePwd()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--md-sys-color-on-surface-variant)">
+                <span class="material-icons" id="pwd-icon">visibility</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="form-group" style="margin-bottom:20px">
-          <label class="form-label">Contraseña</label>
-          <div style="position:relative">
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••"
-                   value="admin123" autocomplete="current-password" required style="padding-right:44px"/>
-            <button type="button" onclick="togglePwd()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--md-sys-color-on-surface-variant)">
-              <span class="material-icons" id="pwd-icon">visibility</span>
-            </button>
+
+        <!-- Patient fields -->
+        <div id="patient-fields" style="display:none">
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label">Tipo de documento</label>
+            <select id="doc-type" class="form-control">
+              <option value="urn:co:cc">Cédula de Ciudadanía (CC)</option>
+              <option value="urn:co:ce">Cédula de Extranjería (CE)</option>
+              <option value="urn:co:nt">NIT</option>
+              <option value="urn:co:pp">Pasaporte</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:20px">
+            <label class="form-label">Número de documento</label>
+            <input type="text" id="doc-number" class="form-control" placeholder="Ej: 1020123456" autocomplete="off"/>
           </div>
         </div>
 
         <div class="alert alert-error hidden" id="login-error" style="margin-bottom:16px">
           <span class="material-icons" style="font-size:16px">error</span>
-          <span>Credenciales incorrectas. Verifica tu correo y contraseña.</span>
+          <span id="login-error-text">Credenciales incorrectas. Verifica tus datos.</span>
         </div>
 
-        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:12px">
-          <span class="material-icons">login</span>
-          Ingresar al sistema
+        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:12px;">
+          <span class="material-icons" id="login-btn-icon">login</span>
+          <span id="login-btn-text">Ingresar al sistema</span>
         </button>
       </form>
 
       <div class="divider"></div>
       <div style="text-align:center">
-        <a href="../frontend-html/index.html" style="font-size:13px;color:var(--md-sys-color-primary);display:inline-flex;align-items:center;gap:4px">
+        <a href="../agenda/" style="font-size:13px;color:var(--md-sys-color-primary);display:inline-flex;align-items:center;gap:4px">
           <span class="material-icons" style="font-size:16px">arrow_back</span> Ir al portal del paciente
         </a>
       </div>
@@ -87,6 +107,7 @@
   </div>
 </div>
 
+<script src="js/config.js"></script>
 <script src="js/fhir-client.js"></script>
 <script>
   let selectedRole = 'admin';
@@ -101,9 +122,24 @@
     selectedRole = role;
     document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
-    const hints = { admin: 'admin@acmesalud.co / admin123', patient: 'paciente@acmesalud.co / paciente123' };
-    document.getElementById('login-email').value = role === 'admin' ? 'admin@acmesalud.co' : 'paciente@acmesalud.co';
-    document.getElementById('login-password').value = role === 'admin' ? 'admin123' : 'paciente123';
+
+    const adminFields = document.getElementById('admin-fields');
+    const patientFields = document.getElementById('patient-fields');
+    const hint = document.getElementById('hint-text');
+
+    if (role === 'admin') {
+      adminFields.style.display = 'block';
+      patientFields.style.display = 'none';
+      document.getElementById('login-email').required = true;
+      document.getElementById('login-password').required = true;
+      hint.innerHTML = '<strong>Demo Admin:</strong> admin@acmesalud.co / admin123';
+    } else {
+      adminFields.style.display = 'none';
+      patientFields.style.display = 'block';
+      document.getElementById('login-email').required = false;
+      document.getElementById('login-password').required = false;
+      hint.innerHTML = '<strong>Acceso paciente:</strong> Ingresa tu tipo y número de documento. Los datos se validan contra el servidor FHIR.';
+    }
   }
 
   function togglePwd() {
@@ -113,19 +149,74 @@
     else { pwd.type = 'password'; icon.textContent = 'visibility'; }
   }
 
-  function doLogin(e) {
+  async function doLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error');
+    const errText = document.getElementById('login-error-text');
+    const btnIcon = document.getElementById('login-btn-icon');
+    const btnText = document.getElementById('login-btn-text');
     errEl.classList.add('hidden');
 
-    const session = login(email, password, selectedRole);
-    if (!session) {
+    if (selectedRole === 'admin') {
+      btnIcon.textContent = 'hourglass_top';
+      btnText.textContent = 'Ingresando...';
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const session = login(email, password, selectedRole);
+      if (!session) {
+        errText.textContent = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
+        errEl.classList.remove('hidden');
+        btnIcon.textContent = 'login';
+        btnText.textContent = 'Ingresar al sistema';
+        return;
+      }
+      window.location.href = session.role === 'patient' ? 'patient-dashboard.html' : 'index.html';
+      return;
+    }
+
+    // Patient login via FHIR
+    const system = document.getElementById('doc-type').value;
+    const value = document.getElementById('doc-number').value.trim();
+    if (!value) {
+      errText.textContent = 'Ingresa tu número de documento.';
       errEl.classList.remove('hidden');
       return;
     }
-    window.location.href = session.role === 'patient' ? 'patient-dashboard.html' : 'index.html';
+    btnIcon.textContent = 'hourglass_top';
+    btnText.textContent = 'Verificando...';
+    try {
+      const resp = await fetch(`${API_BASE_URL}/Patient?identifier=${system}|${encodeURIComponent(value)}`, {
+        headers: { 'Accept': 'application/fhir+json' }
+      });
+      const bundle = await resp.json();
+      const patients = (bundle.entry || []).map(e => e.resource);
+      if (patients.length === 0) {
+        errText.textContent = 'No se encontró un paciente con ese documento. Consulta a tu asegurador para registrarte.';
+        errEl.classList.remove('hidden');
+        btnIcon.textContent = 'login';
+        btnText.textContent = 'Ingresar al sistema';
+        return;
+      }
+      const p = patients[0];
+      const name = p.name?.[0];
+      const patientName = (name?.given || []).join(' ') + ' ' + (name?.family || '');
+      const session = {
+        email: '',
+        role: 'patient',
+        name: patientName,
+        patientId: p.id,
+        loginAt: new Date().toISOString()
+      };
+      localStorage.setItem('fhir_session', JSON.stringify(session));
+      sessionStorage.setItem('fhir_session', JSON.stringify(session));
+      window.location.href = 'patient-dashboard.html';
+    } catch (e) {
+      console.error('Error FHIR:', e);
+      errText.textContent = 'Error de conexión con el servidor FHIR. Verifica que el servidor esté funcionando.';
+      errEl.classList.remove('hidden');
+      btnIcon.textContent = 'login';
+      btnText.textContent = 'Ingresar al sistema';
+    }
   }
 </script>
 </body>

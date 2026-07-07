@@ -92,12 +92,10 @@
     <nav class="sidebar-nav">
       <div class="nav-section-title">Mi Portal</div>
       <a class="nav-item active" href="patient-dashboard.html"><span class="material-icons">home</span> Mi Panel</a>
-      <a class="nav-item" href="../frontend-html/agendar-cita.html" target="_blank"><span class="material-icons">add_circle</span> Agendar Cita</a>
+      <a class="nav-item" href="../agenda/agendar-cita.html" target="_blank"><span class="material-icons">add_circle</span> Agendar Cita</a>
       <div class="nav-section-title">Mis datos</div>
-      <a class="nav-item" id="nav-mis-citas" href="#"><span class="material-icons">event</span> Mis Citas</a>
+      <a class="nav-item" id="nav-mis-citas" href="#" onclick="scrollToTabs()"><span class="material-icons">event</span> Mis Citas</a>
       <a class="nav-item" id="nav-mi-cobertura" href="#"><span class="material-icons">health_and_safety</span> Mi Cobertura</a>
-      <div class="nav-section-title">Herramientas</div>
-      <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -110,7 +108,7 @@
       </div>
       <div class="topbar-right">
         <span class="fhir-badge"><span class="material-icons" style="font-size:14px">verified</span> FHIR R4</span>
-        <a href="../frontend-html/agendar-cita.html" target="_blank" class="btn btn-primary">
+        <a href="../agenda/agendar-cita.html" target="_blank" class="btn btn-primary">
           <span class="material-icons">add</span> Nueva cita
         </a>
       </div>
@@ -137,7 +135,7 @@
           <div class="cta-title">¿Necesitas una cita médica?</div>
           <div class="cta-sub">Accede al portal de agendamiento y escoge la especialidad y fecha que mejor te convenga.</div>
         </div>
-        <a href="../frontend-html/agendar-cita.html" target="_blank" class="cta-btn">Agendar ahora</a>
+        <a href="../agenda/agendar-cita.html" target="_blank" class="cta-btn">Agendar ahora</a>
       </div>
 
       <!-- Estadísticas rápidas -->
@@ -217,6 +215,9 @@ let myPatientId = null, myCancelAptId = null;
 
 if (session) {
   renderSidebarUser(session);
+  document.querySelectorAll('a[href*="agendar-cita.html"]').forEach(a => {
+    a.href = `../agenda/agendar-cita.html?patient=${session.patientId}`;
+  });
   function initPage() {
     const patients = getResources('Patient');
     const myPat = patients.find(p => p.id === session.patientId) || patients[0];
@@ -297,7 +298,7 @@ function renderAllTabs(pat) {
 
   document.getElementById('tab-proximas').innerHTML = proximas.length
     ? `<div class="apt-timeline">${proximas.map(a => aptItemHtml(a, true)).join('')}</div>`
-    : emptyState('upcoming', 'No tienes citas próximas', '<a href="../frontend-html/agendar-cita.html" target="_blank" class="btn btn-primary"><span class="material-icons">add</span> Agendar una cita</a>');
+    : emptyState('upcoming', 'No tienes citas próximas', `<a href="../agenda/agendar-cita.html?patient=${session.patientId}" target="_blank" class="btn btn-primary"><span class="material-icons">add</span> Agendar una cita</a>`);
 
   document.getElementById('tab-historial').innerHTML = historial.length
     ? `<div class="apt-timeline">${historial.map(a => aptItemHtml(a, false)).join('')}</div>`
@@ -412,9 +413,7 @@ function confirmMyCancel() {
   if (slotRef) { const slot = getResource('Slot', slotRef); if (slot) { slot.status = 'free'; updateResource('Slot', slotRef, slot); } }
 
   closeModal('cancel-my-apt-modal');
-  toast('warning', 'Atención', 'Tu cita ha sido cancelada correctamente');
-  const myPat = getResource('Patient', myPatientId);
-  if (myPat) { renderPatientStats(myPat); renderAllTabs(myPat); }
+  Swal.fire({ icon: 'success', title: 'Cancelada', text: 'Tu cita ha sido cancelada correctamente', timer: 1500, showConfirmButton: false }).then(() => location.reload());
 }
 
 function switchTab(name) {
@@ -423,6 +422,11 @@ function switchTab(name) {
   const idx = ['proximas','historial','canceladas','respuestas'].indexOf(name);
   document.querySelectorAll('.tab')[idx].classList.add('active');
   document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+function scrollToTabs() {
+  const el = document.querySelector('.tabs');
+  if (el) { switchTab('proximas'); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 
 function formatTime(dt) {

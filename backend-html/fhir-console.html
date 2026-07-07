@@ -24,6 +24,7 @@
             <a class="nav-item" href="index.html"><span class="material-icons">dashboard</span> Dashboard</a>
             <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas</a>
             <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organizations</a>
+            <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
             <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patients</a>
             <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioners</a>
             <a class="nav-item" href="healthcare-services.html"><span class="material-icons">local_hospital</span> HealthcareService</a>
@@ -151,8 +152,8 @@
 
 <div class="toast-container"></div>
 
-<script src="js/fhir-client.js"></script>
 <script src="js/config.js"></script>
+<script src="js/fhir-client.js"></script>
 <script src="js/fhir-inspector.js"></script>
 <script src="js/fhir-inspector-ui.js"></script>
 <script>
@@ -162,20 +163,149 @@ function toast(icon, title, text) {
 
 const RESOURCES_WITHOUT_ID = ['metadata'];
 
-let history = [];
+const FHIR_EXAMPLES = {
+    Patient: {
+        resourceType: 'Patient',
+        identifier: [{
+            use: 'official',
+            type: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'CC', display: 'Cédula de Ciudadanía' }] },
+            value: '10102020'
+        }],
+        active: true,
+        name: [{ use: 'official', family: 'Pérez', given: ['Juan', 'Sebastián'] }],
+        telecom: [{ system: 'phone', value: '3001234567', use: 'mobile' }],
+        gender: 'male',
+        birthDate: '1990-05-15'
+    },
+    Organization: {
+        resourceType: 'Organization',
+        identifier: [{ use: 'official', system: 'http://minsalud.gov.co/rid', value: '900123456-7' }],
+        active: true,
+        type: [{
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/organization-type', code: 'prov', display: 'Healthcare Provider' }]
+        }],
+        name: 'Nueva Organización Salud',
+        telecom: [
+            { system: 'phone', value: '+57 601 5555555', use: 'work' },
+            { system: 'url', value: 'https://www.ejemplo.com', use: 'work' }
+        ],
+        address: [{ line: ['Calle 100 #12b 67'], city: 'Bogotá', country: 'CO' }]
+    },
+    Location: {
+        resourceType: 'Location',
+        identifier: [{ system: 'http://acmesalud.com/identificador-sedes', value: '1100155555-2' }],
+        status: 'active',
+        name: 'Sede Nueva',
+        description: 'Punto de atención nueva sede',
+        mode: 'instance',
+        address: { line: ['Carrera 10 #12-50'], city: 'Bogotá', district: 'Centro', country: 'CO' },
+        physicalType: {
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/location-physical-type', code: 'bu', display: 'Building' }]
+        },
+        managingOrganization: { reference: 'Organization/org-ejemplo' }
+    },
+    Practitioner: {
+        resourceType: 'Practitioner',
+        identifier: [{ use: 'official', value: '777666555' }],
+        name: [{ family: 'Fonseca', given: ['Alonso'] }]
+    },
+    PractitionerRole: {
+        resourceType: 'PractitionerRole',
+        practitioner: { reference: 'Practitioner/dr-ejemplo' },
+        organization: { reference: 'Organization/org-ejemplo' },
+        specialty: [{
+            coding: [{ system: 'http://snomed.info/sct', code: '394579002', display: 'Cardiology' }]
+        }],
+        healthcareService: [{ reference: 'HealthcareService/serv-ejemplo' }]
+    },
+    HealthcareService: {
+        resourceType: 'HealthcareService',
+        active: true,
+        location: [{ reference: 'Location/sede-ejemplo' }],
+        name: 'Medicina General - Sede Ejemplo',
+        type: [{
+            coding: [{ system: 'http://snomed.info/sct', code: '394802001', display: 'medicina general' }]
+        }]
+    },
+    Schedule: {
+        resourceType: 'Schedule',
+        active: true,
+        serviceCategory: [{
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/service-category', code: '30', display: 'Specialist Medical' }]
+        }],
+        serviceType: [{
+            coding: [{ system: 'http://snomed.info/sct', code: '394589003', display: 'Nephrology' }]
+        }],
+        actor: [{ reference: 'PractitionerRole/role-ejemplo', display: 'Dr. Ejemplo - Especialidad' }],
+        planningHorizon: {
+            start: new Date().toISOString().slice(0, 10) + 'T00:00:00Z',
+            end: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10) + 'T23:59:59Z'
+        }
+    },
+    Slot: {
+        resourceType: 'Slot',
+        schedule: { reference: 'Schedule/sched-ejemplo' },
+        status: 'free',
+        start: new Date(Date.now() + 86400000).toISOString().replace(/\.\d{3}/, ''),
+        end: new Date(Date.now() + 86400000 + 2700000).toISOString().replace(/\.\d{3}/, ''),
+        comment: 'Espacio disponible para consulta'
+    },
+    Coverage: {
+        resourceType: 'Coverage',
+        status: 'active',
+        type: {
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'IPHIS', display: 'individual public health insurance' }]
+        },
+        subscriber: { reference: 'Patient/paciente-ejemplo' },
+        beneficiary: { reference: 'Patient/paciente-ejemplo' },
+        relationship: {
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/subscriber-relationship', code: 'self' }]
+        },
+        payor: [{ reference: 'Organization/salud-ejemplo' }],
+        period: { start: new Date().toISOString().slice(0, 10) }
+    },
+    Appointment: {
+        resourceType: 'Appointment',
+        status: 'booked',
+        serviceType: [{
+            coding: [{ system: 'http://snomed.info/sct', code: '394589003', display: 'Nephrology' }]
+        }],
+        specialty: [{
+            coding: [{ system: 'http://snomed.info/sct', code: '394589003', display: 'Nephrology' }]
+        }],
+        appointmentType: {
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0276', code: 'ROUTINE', display: 'Routine release' }]
+        },
+        description: 'Consulta de control',
+        start: new Date(Date.now() + 7 * 86400000).toISOString().replace(/\.\d{3}/, ''),
+        end: new Date(Date.now() + 7 * 86400000 + 2700000).toISOString().replace(/\.\d{3}/, ''),
+        slot: [{ reference: 'Slot/slot-ejemplo' }],
+        participant: [
+            { actor: { reference: 'Patient/paciente-ejemplo', display: 'Juan Sebastián Pérez' }, required: 'required', status: 'accepted' },
+            { actor: { reference: 'PractitionerRole/role-ejemplo', display: 'Dr. Ejemplo' }, required: 'required', status: 'accepted' },
+            { actor: { reference: 'Location/sede-ejemplo', display: 'Sede Ejemplo' }, required: 'required', status: 'accepted' }
+        ]
+    },
+    AppointmentResponse: {
+        resourceType: 'AppointmentResponse',
+        appointment: { reference: 'Appointment/cita-ejemplo', display: 'Consulta de control' },
+        participantStatus: 'accepted',
+        actor: { reference: 'PractitionerRole/role-ejemplo', display: 'Dr. Ejemplo' },
+        comment: 'Confirmo mi disponibilidad'
+    }
+};
 
 document.getElementById('http-method').addEventListener('change', toggleFields);
 document.getElementById('resource-type').addEventListener('change', toggleFields);
 document.getElementById('resource-type').addEventListener('change', () => {
     const type = document.getElementById('resource-type').value;
     const body = document.getElementById('request-body');
-    body.value = JSON.stringify({
-        resourceType: type,
-        id: type.toLowerCase() + '-' + Date.now().toString(36),
-        status: 'active',
-        name: type === 'Patient' ? [{ family: 'Apellido', given: ['Nombre'] }] : undefined,
-        telecom: [{ system: 'phone', value: '+57 300 0000000' }]
-    }, null, 4);
+    const example = FHIR_EXAMPLES[type];
+    if (example) {
+        body.value = JSON.stringify(example, null, 4);
+    } else {
+        body.value = JSON.stringify({ resourceType: type }, null, 4);
+    }
 });
 
 function toggleFields() {
@@ -183,9 +313,17 @@ function toggleFields() {
     const resource = document.getElementById('resource-type').value;
     const idField = document.getElementById('id-field');
     const bodyField = document.getElementById('body-field');
+    const body = document.getElementById('request-body');
 
     idField.style.display = (method === 'GET' || method === 'PUT' || method === 'DELETE') && resource !== 'metadata' ? 'block' : 'none';
     bodyField.style.display = (method === 'POST' || method === 'PUT') ? 'block' : 'none';
+
+    if (method === 'POST' || method === 'PUT') {
+        const example = FHIR_EXAMPLES[resource];
+        if (example && !body.value.trim()) {
+            body.value = JSON.stringify(example, null, 4);
+        }
+    }
 }
 
 async function sendRequest() {
@@ -218,7 +356,6 @@ async function sendRequest() {
 
     const log = await fhirInspector.request(method, endpoint, body);
     showResponse(log);
-    addHistory(log);
     if (log.success) { toast('success', 'Éxito', `${method} ${endpoint} → ${log.response.status}`); } else { toast('error', 'Error', `${method} ${endpoint} → ${log.response.status}`); }
 }
 
@@ -291,22 +428,17 @@ function showResponse(log) {
     `;
 }
 
-function addHistory(log) {
-    history.unshift(log);
-    if (history.length > 50) history.pop();
-    renderHistory();
-}
-
 function renderHistory() {
     const container = document.getElementById('history-list');
-    if (history.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="padding:20px"><span class="material-icons" style="font-size:24px">info</span><div style="font-size:13px">Aún no hay peticiones en esta sesión</div></div>';
+    const logs = fhirInspector.getLogs();
+    if (logs.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding:20px"><span class="material-icons" style="font-size:24px">info</span><div style="font-size:13px">Aún no hay peticiones registradas</div></div>';
         return;
     }
 
-    container.innerHTML = history.map((log, idx) => {
+    container.innerHTML = logs.map((log, idx) => {
         const req = log.request;
-        const res = log.response;
+        const res = log.response || {};
         const endpoint = req.url.replace(API_BASE_URL, '');
         const time = new Date(log.timestamp).toLocaleTimeString('es-CO');
         const methodClass = 'method-' + req.method.toLowerCase();
@@ -318,15 +450,16 @@ function renderHistory() {
 
         return `<div class="history-item" onclick="replayHistory(${idx})">
             <span class="inspector-method ${methodClass}">${req.method}</span>
-            <span class="inspector-status ${statusClass}">${res.status}</span>
+            <span class="inspector-status ${statusClass}">${res.status ?? 'ERR'}</span>
             <span class="endpoint">${endpoint}</span>
+            <span class="history-source" title="Origen">${log.source || ''}</span>
             <span class="time">${time} · ${log.duration}ms</span>
         </div>`;
     }).join('');
 }
 
 function replayHistory(idx) {
-    const log = history[idx];
+    const log = fhirInspector.getLogs()[idx];
     if (!log) return;
     showResponse(log);
     const curl = fhirInspector.formatRequestAsCurl(log);
@@ -344,7 +477,7 @@ function replayHistory(idx) {
 }
 
 function clearHistory() {
-    history = [];
+    fhirInspector.clearLogs();
     renderHistory();
     toast('info', 'Información', 'Historial limpiado');
 }
@@ -374,6 +507,8 @@ function copyText(text) {
 }
 
 toggleFields();
+renderHistory();
+fhirInspector.onLog(() => renderHistory());
 </script>
 </body>
 </html>

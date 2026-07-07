@@ -1,0 +1,68 @@
+[
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-medicina-general-centro",
+    "active": true,
+    "location": [
+      {
+        "reference": "Location/sede-centro"
+      }
+    ],
+    "name": "Medicina General - Sede Centro",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394802001",
+            "display": "medicina general"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-nefrologia-centro",
+    "active": true,
+    "location": [
+      {
+        "reference": "Location/sede-centro"
+      }
+    ],
+    "name": "Nefrología - Sede Centro",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394589003",
+            "display": "nefrología"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-gastro-centro",
+    "active": true,
+    "location": [
+      {
+        "reference": "Location/sede-centro"
+      }
+    ],
+    "name": "Gastroenterología - Sede Centro",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394584008",
+            "display": "gastroenterología"
+          }
+        ]
+      }
+    ]
+  }
+]

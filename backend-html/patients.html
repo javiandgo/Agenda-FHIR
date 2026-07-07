@@ -20,6 +20,7 @@
       <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item active" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -27,7 +28,7 @@
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -61,7 +62,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>ID FHIR</th><th>Cédula</th><th>Nombre completo</th><th>Género</th><th>Fecha nacimiento</th><th>Teléfono</th><th>Cobertura</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>ID FHIR</th><th>Cédula</th><th>Nombre completo</th><th>Género</th><th>Fecha nacimiento</th><th>Edad</th><th>Teléfono</th><th>Cobertura</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="pats-table"></tbody>
           </table>
@@ -204,7 +205,7 @@ function renderPats(filter = '') {
 
   const tbody = document.getElementById('pats-table');
   tbody.innerHTML = '';
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">No se encontraron pacientes</td></tr>'; return; }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">No se encontraron pacientes</td></tr>'; return; }
 
   filtered.forEach(pat => {
     const cc = pat.identifier?.find(i => i.system?.includes('cc'))?.value || '-';
@@ -217,8 +218,9 @@ function renderPats(filter = '') {
       <td><strong>${getPatientName(pat)}</strong></td>
       <td>${genderLabel[pat.gender] || '-'}</td>
       <td>${formatDate(pat.birthDate)}</td>
+      <td>${calculateAge(pat.birthDate)}</td>
       <td>${pat.telecom?.find(t => t.system === 'phone')?.value || '-'}</td>
-      <td>${cov ? `<span class="badge badge-active">${cov.payor?.[0]?.display || 'Sí'}</span>` : '<span class="badge badge-inactive">Sin cobertura</span>'}</td>
+      <td>${cov ? `<span class="badge badge-active">${cov.payor?.[0]?.display || (() => { const r = cov.payor?.[0]?.reference?.replace('Organization/',''); return r ? getResource('Organization', r)?.name || r : 'Sí'; })()}</span>` : '<span class="badge badge-inactive">Sin cobertura</span>'}</td>
       <td><span class="badge ${pat.active ? 'badge-active' : 'badge-inactive'}">${pat.active ? 'Activo' : 'Inactivo'}</span></td>
       <td>
         <div style="display:flex;gap:4px">
@@ -283,14 +285,13 @@ function savePat() {
     address: [{ line: [document.getElementById('pat-address').value.trim()], city: document.getElementById('pat-city').value.trim(), country: 'CO' }]
   };
 
-  if (editingPatId) { updateResource('Patient', editingPatId, pat); closeModal('pat-modal'); toast('success', 'Éxito', 'Patient actualizado'); }
+  if (editingPatId) { updateResource('Patient', editingPatId, pat); closeModal('pat-modal'); Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Patient actualizado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); }
   else {
-    if (getResource('Patient', id)) { toast('error', 'Error', 'Ya existe un Patient con ese ID'); return; }
+    if (getResource('Patient', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe un Patient con ese ID' }); return; }
     createResource('Patient', pat);
     closeModal('pat-modal');
-    toast('success', 'Éxito', 'Patient creado exitosamente');
+    Swal.fire({ icon: 'success', title: 'Creado', text: 'Patient creado exitosamente', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderPats();
 }
 
 function viewPat(id) {
@@ -328,7 +329,7 @@ function viewPat(id) {
   openModal('view-pat-modal');
 }
 
-function openDeletePat(id) { try { Swal.fire({ title: 'Eliminar Patient', text: '¿Eliminar este paciente? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Patient', id); toast('warning', 'Atención', 'Patient eliminado'); renderPats(); } }); } catch(e) { if(confirm('¿Eliminar este paciente? Esta acción es irreversible.')) { deleteResource('Patient', id); renderPats(); } } }
+function openDeletePat(id) { try { Swal.fire({ title: 'Eliminar Patient', text: '¿Eliminar este paciente? Esta acción es irreversible.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Patient', id); Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Patient eliminado', timer: 1500, showConfirmButton: false }).then(() => location.reload()); } }); } catch(e) { if(confirm('¿Eliminar este paciente? Esta acción es irreversible.')) { deleteResource('Patient', id); location.reload(); } } }
 </script>
 </body>
 </html>

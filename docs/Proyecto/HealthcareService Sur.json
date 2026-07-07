@@ -1,0 +1,68 @@
+[
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-medicina-general-sur",
+    "active": true,
+    "location": [
+      {
+        "reference": "Location/sede-sur"
+      }
+    ],
+    "name": "Medicina General - Sede Sur",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394802001",
+            "display": "medicina general"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-oncologia-sur",
+    "active": true,
+    "location": [
+      {
+        "reference": "Location/sede-sur"
+      }
+    ],
+    "name": "Oncología - Sede Sur",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394592004",
+            "display": "oncología clínica"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "resourceType": "HealthcareService",
+    "id": "serv-cardiologia-sur",
+    "active": true,
+    "location": [
+      {
+        "reference": "Location/sede-sur"
+      }
+    ],
+    "name": "Cardiología - Sede Sur",
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://snomed.info/sct",
+            "code": "394579002",
+            "display": "cardiología"
+          }
+        ]
+      }
+    ]
+  }
+]

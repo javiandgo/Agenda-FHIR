@@ -51,29 +51,77 @@
         <div class="booking-wrapper">
           <!-- Stepper -->
           <div class="stepper">
-            <div class="step active" data-step="1">
+            <div class="step active" data-step="0">
               <div class="step-circle">1</div>
+              <div class="step-label">Identificación</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" data-step="1">
+              <div class="step-circle">2</div>
               <div class="step-label">Especialidad</div>
             </div>
             <div class="step-line"></div>
             <div class="step" data-step="2">
-              <div class="step-circle">2</div>
+              <div class="step-circle">3</div>
               <div class="step-label">Médico</div>
             </div>
             <div class="step-line"></div>
             <div class="step" data-step="3">
-              <div class="step-circle">3</div>
+              <div class="step-circle">4</div>
               <div class="step-label">Fecha y Hora</div>
             </div>
             <div class="step-line"></div>
             <div class="step" data-step="4">
-              <div class="step-circle">4</div>
+              <div class="step-circle">5</div>
               <div class="step-label">Confirmar</div>
             </div>
           </div>
 
+          <!-- Step 0: Identificación del paciente -->
+          <div class="step-content active" id="step-0">
+            <div class="step-header">
+              <h2>Identificación del paciente</h2>
+              <p>Ingresa tu tipo y número de documento para validar tus datos</p>
+            </div>
+
+            <md-outlined-card class="patient-id-card">
+              <div class="patient-id-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Tipo de documento</label>
+                    <select id="doc-type" class="form-control">
+                      <option value="urn:co:cc">Cédula de Ciudadanía (CC)</option>
+                      <option value="urn:co:ce">Cédula de Extranjería (CE)</option>
+                      <option value="urn:co:nt">NIT</option>
+                      <option value="urn:co:pp">Pasaporte</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Número de documento</label>
+                    <input type="text" id="doc-number" class="form-control" placeholder="Ej: 1020123456" autocomplete="off"/>
+                  </div>
+                  <div class="form-group" style="display:flex;align-items:flex-end">
+                    <md-filled-button id="verify-patient">
+                      <span class="material-icons" slot="icon">search</span>
+                      Verificar
+                    </md-filled-button>
+                  </div>
+                </div>
+                <div id="patient-result" style="display:none;margin-top:16px"></div>
+              </div>
+            </md-outlined-card>
+
+            <div class="step-actions">
+              <md-text-button onclick="window.location.href = 'index.html'">Cancelar</md-text-button>
+              <md-filled-button id="next-step-0" disabled>
+                Siguiente
+                <span class="material-icons" slot="icon">arrow_forward</span>
+              </md-filled-button>
+            </div>
+          </div>
+
           <!-- Step 1: Especialidad -->
-          <div class="step-content active" id="step-1">
+          <div class="step-content" id="step-1">
             <div class="step-header">
               <h2>Selecciona la especialidad</h2>
               <p>Elige el tipo de consulta que necesitas</p>
@@ -86,59 +134,6 @@
             </div>
 
             <div class="specialty-grid">
-              <md-outlined-card class="specialty-card" data-specialty="pediatria">
-                <div class="specialty-content">
-                  <span class="material-icons specialty-icon">child_care</span>
-                  <h3>Pediatría</h3>
-                  <p class="available-slots">15 turnos disponibles</p>
-                  <md-filled-button class="select-btn">Seleccionar</md-filled-button>
-                </div>
-              </md-outlined-card>
-
-              <md-outlined-card class="specialty-card" data-specialty="obstetricia">
-                <div class="specialty-content">
-                  <span class="material-icons specialty-icon">pregnant_woman</span>
-                  <h3>Obstetricia</h3>
-                  <p class="available-slots">8 turnos disponibles</p>
-                  <md-filled-button class="select-btn">Seleccionar</md-filled-button>
-                </div>
-              </md-outlined-card>
-
-              <md-outlined-card class="specialty-card" data-specialty="cardiologia">
-                <div class="specialty-content">
-                  <span class="material-icons specialty-icon">favorite</span>
-                  <h3>Cardiología</h3>
-                  <p class="available-slots">12 turnos disponibles</p>
-                  <md-filled-button class="select-btn">Seleccionar</md-filled-button>
-                </div>
-              </md-outlined-card>
-
-              <md-outlined-card class="specialty-card" data-specialty="nefrologia">
-                <div class="specialty-content">
-                  <span class="material-icons specialty-icon">water_drop</span>
-                  <h3>Nefrología</h3>
-                  <p class="available-slots">6 turnos disponibles</p>
-                  <md-filled-button class="select-btn">Seleccionar</md-filled-button>
-                </div>
-              </md-outlined-card>
-
-              <md-outlined-card class="specialty-card" data-specialty="oncologia">
-                <div class="specialty-content">
-                  <span class="material-icons specialty-icon">healing</span>
-                  <h3>Oncología</h3>
-                  <p class="available-slots">4 turnos disponibles</p>
-                  <md-filled-button class="select-btn">Seleccionar</md-filled-button>
-                </div>
-              </md-outlined-card>
-
-              <md-outlined-card class="specialty-card" data-specialty="gastroenterologia">
-                <div class="specialty-content">
-                  <span class="material-icons specialty-icon">restaurant</span>
-                  <h3>Gastroenterología</h3>
-                  <p class="available-slots">10 turnos disponibles</p>
-                  <md-filled-button class="select-btn">Seleccionar</md-filled-button>
-                </div>
-              </md-outlined-card>
             </div>
 
             <div class="step-actions">
@@ -160,75 +155,10 @@
             <div class="location-filter">
               <h3>Ubicación</h3>
               <div class="chip-group">
-                <md-filter-chip label="Todas las clínicas" selected></md-filter-chip>
-                <md-filter-chip label="Clínica Norte"></md-filter-chip>
-                <md-filter-chip label="Clínica Centro"></md-filter-chip>
-                <md-filter-chip label="Clínica Sur"></md-filter-chip>
               </div>
             </div>
 
             <div class="doctors-list">
-              <md-outlined-card class="doctor-card" data-doctor="casas">
-                <div class="doctor-info">
-                  <div class="doctor-avatar">
-                    <span class="material-icons">person</span>
-                  </div>
-                  <div class="doctor-details">
-                    <h3>Dr. Gregorio Casas</h3>
-                    <p class="doctor-specialty">Pediatra</p>
-                    <div class="doctor-meta">
-                      <span class="material-icons small">badge</span>
-                      <span>T.P. 111222333</span>
-                    </div>
-                    <div class="doctor-meta">
-                      <span class="material-icons small">location_on</span>
-                      <span>Clínica Norte</span>
-                    </div>
-                    <div class="doctor-meta">
-                      <span class="material-icons small">star</span>
-                      <span>4.8/5.0 (245 opiniones)</span>
-                    </div>
-                    <div class="doctor-meta next-available">
-                      <span class="material-icons small">schedule</span>
-                      <span>Próxima disponibilidad: Lun 5 May - 8:00 AM</span>
-                    </div>
-                  </div>
-                  <div class="doctor-action">
-                    <md-filled-button class="select-doctor-btn"> Seleccionar </md-filled-button>
-                  </div>
-                </div>
-              </md-outlined-card>
-
-              <md-outlined-card class="doctor-card" data-doctor="lopez">
-                <div class="doctor-info">
-                  <div class="doctor-avatar">
-                    <span class="material-icons">person</span>
-                  </div>
-                  <div class="doctor-details">
-                    <h3>Dra. Ana María López</h3>
-                    <p class="doctor-specialty">Pediatra</p>
-                    <div class="doctor-meta">
-                      <span class="material-icons small">badge</span>
-                      <span>T.P. 999888777</span>
-                    </div>
-                    <div class="doctor-meta">
-                      <span class="material-icons small">location_on</span>
-                      <span>Clínica Norte</span>
-                    </div>
-                    <div class="doctor-meta">
-                      <span class="material-icons small">star</span>
-                      <span>4.9/5.0 (189 opiniones)</span>
-                    </div>
-                    <div class="doctor-meta next-available">
-                      <span class="material-icons small">schedule</span>
-                      <span>Próxima disponibilidad: Mar 6 May - 9:00 AM</span>
-                    </div>
-                  </div>
-                  <div class="doctor-action">
-                    <md-outlined-button class="select-doctor-btn"> Seleccionar </md-outlined-button>
-                  </div>
-                </div>
-              </md-outlined-card>
             </div>
 
             <div class="step-actions">
@@ -250,99 +180,30 @@
               <div class="selection-summary">
                 <p>Especialidad: <strong id="summary-specialty"></strong></p>
                 <p>Médico: <strong id="summary-doctor"></strong></p>
-                <p>Ubicación: <strong id="summary-location">Clínica Norte</strong></p>
-                <p class="coverage-info">Tu cobertura: <strong>Salud Completa</strong> - Duración: <strong>45 min</strong></p>
               </div>
             </div>
 
-            <div class="calendar-container">
+            <div class="calendar-container" style="display:none">
               <div class="calendar-header">
-                <md-icon-button>
-                  <span class="material-icons">chevron_left</span>
-                </md-icon-button>
-                <h3>Mayo 2026</h3>
-                <md-icon-button>
-                  <span class="material-icons">chevron_right</span>
-                </md-icon-button>
+                <h3></h3>
               </div>
-
               <div class="calendar-grid">
-                <div class="calendar-day-header">Lun</div>
-                <div class="calendar-day-header">Mar</div>
-                <div class="calendar-day-header">Mié</div>
-                <div class="calendar-day-header">Jue</div>
-                <div class="calendar-day-header">Vie</div>
-                <div class="calendar-day-header">Sáb</div>
-                <div class="calendar-day-header">Dom</div>
-
-                <div class="calendar-day empty"></div>
-                <div class="calendar-day empty"></div>
-                <div class="calendar-day empty"></div>
-                <div class="calendar-day available" data-date="2026-05-01">1</div>
-                <div class="calendar-day available" data-date="2026-05-02">2</div>
-                <div class="calendar-day empty">3</div>
-                <div class="calendar-day empty">4</div>
-                <div class="calendar-day available active" data-date="2026-05-05">5</div>
-                <div class="calendar-day available" data-date="2026-05-06">6</div>
-                <div class="calendar-day available" data-date="2026-05-07">7</div>
-                <div class="calendar-day unavailable">8</div>
-                <div class="calendar-day empty">9</div>
-                <div class="calendar-day empty">10</div>
-                <div class="calendar-day empty">11</div>
-                <div class="calendar-day available" data-date="2026-05-12">12</div>
-                <div class="calendar-day available" data-date="2026-05-13">13</div>
-                <div class="calendar-day unavailable">14</div>
-                <div class="calendar-day available" data-date="2026-05-15">15</div>
-                <div class="calendar-day available" data-date="2026-05-16">16</div>
               </div>
             </div>
 
-            <div class="time-slots-container">
-              <h3>Horarios Disponibles - Lunes 5 de Mayo</h3>
+            <div class="time-slots-container" style="display:none">
+              <h3></h3>
 
               <div class="time-section">
                 <h4>Mañana</h4>
                 <div class="time-slots">
-                  <md-filled-button class="time-slot selected" data-time="08:00">
-                    8:00 AM
-                    <span class="slot-duration">45 min</span>
-                  </md-filled-button>
-                  <md-outlined-button class="time-slot" data-time="09:00">
-                    9:00 AM
-                    <span class="slot-duration">45 min</span>
-                  </md-outlined-button>
-                  <md-outlined-button class="time-slot" data-time="10:15">
-                    10:15 AM
-                    <span class="slot-duration">45 min</span>
-                  </md-outlined-button>
-                  <md-outlined-button class="time-slot" data-time="11:30">
-                    11:30 AM
-                    <span class="slot-duration">45 min</span>
-                  </md-outlined-button>
                 </div>
               </div>
 
               <div class="time-section">
                 <h4>Tarde</h4>
                 <div class="time-slots">
-                  <md-outlined-button class="time-slot" data-time="14:00">
-                    2:00 PM
-                    <span class="slot-duration">45 min</span>
-                  </md-outlined-button>
-                  <md-outlined-button class="time-slot" data-time="15:15">
-                    3:15 PM
-                    <span class="slot-duration">45 min</span>
-                  </md-outlined-button>
-                  <md-outlined-button class="time-slot" data-time="16:30">
-                    4:30 PM
-                    <span class="slot-duration">45 min</span>
-                  </md-outlined-button>
                 </div>
-              </div>
-
-              <div class="info-message">
-                <span class="material-icons">info</span>
-                <span>Los horarios se muestran según tu aseguradora</span>
               </div>
             </div>
 
@@ -373,10 +234,18 @@
 
               <div class="summary-content">
                 <div class="summary-row">
+                  <span class="material-icons">person</span>
+                  <div class="summary-detail">
+                    <strong>Paciente:</strong>
+                    <span id="summary-patient"></span>
+                  </div>
+                </div>
+
+                <div class="summary-row">
                   <span class="material-icons">calendar_today</span>
                   <div class="summary-detail">
                     <strong>Fecha:</strong>
-                    <span>Lunes, 5 de Mayo de 2026</span>
+                    <span></span>
                   </div>
                 </div>
 
@@ -384,7 +253,7 @@
                   <span class="material-icons">schedule</span>
                   <div class="summary-detail">
                     <strong>Hora:</strong>
-                    <span>8:00 AM - 8:45 AM (45 minutos)</span>
+                    <span></span>
                   </div>
                 </div>
 
@@ -392,7 +261,7 @@
                   <span class="material-icons">person</span>
                   <div class="summary-detail">
                     <strong>Médico:</strong>
-                    <span>Dr. Gregorio Casas</span>
+                    <span></span>
                   </div>
                 </div>
 
@@ -400,24 +269,7 @@
                   <span class="material-icons">medical_services</span>
                   <div class="summary-detail">
                     <strong>Especialidad:</strong>
-                    <span>Pediatría - Primera vez</span>
-                  </div>
-                </div>
-
-                <div class="summary-row">
-                  <span class="material-icons">location_on</span>
-                  <div class="summary-detail">
-                    <strong>Ubicación:</strong>
-                    <span>Clínica Norte - Carrera 7 #100-50</span>
-                    <md-text-button>Ver mapa</md-text-button>
-                  </div>
-                </div>
-
-                <div class="summary-row">
-                  <span class="material-icons">credit_card</span>
-                  <div class="summary-detail">
-                    <strong>Cobertura:</strong>
-                    <span>Salud Completa</span>
+                    <span></span>
                   </div>
                 </div>
               </div>
@@ -472,6 +324,7 @@
     </main>
 
     <script src="js/config.js"></script>
+    <script src="js/duracion-convenio.js"></script>
     <script src="js/main.js"></script>
     <script src="js/agendar.js"></script>
   </body>

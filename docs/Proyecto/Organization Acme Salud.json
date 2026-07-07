@@ -1,0 +1,45 @@
+{
+  "resourceType": "Organization",
+  "id": "acme-salud",
+  "identifier": [
+    {
+      "use": "official",
+      "system": "http://minsalud.gov.co/rid",
+      "value": "900123456-7"
+    }
+  ],
+  "active": true,
+  "type": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/organization-type",
+          "code": "prov",
+          "display": "Healthcare Provider"
+        }
+      ]
+    }
+  ],
+  "name": "ACME Salud",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+57 601 5555555",
+      "use": "work"
+    },
+    {
+      "system": "url",
+      "value": "https://www.acmesalud.com",
+      "use": "work"
+    }
+  ],
+  "address": [
+    {
+      "line": [
+        "Calle 100 #12b 67"
+      ],
+      "city": "Bogotá",
+      "country": "CO"
+    }
+  ]
+}

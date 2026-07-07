@@ -20,6 +20,7 @@
       <a class="nav-item" href="appointments.html"><span class="material-icons">event</span> Citas (Appointment)</a>
       <div class="nav-section-title">Recursos FHIR</div>
       <a class="nav-item" href="organizations.html"><span class="material-icons">business</span> Organization</a>
+      <a class="nav-item" href="locations.html"><span class="material-icons">location_on</span> Location</a>
       <a class="nav-item" href="patients.html"><span class="material-icons">people</span> Patient</a>
       <a class="nav-item active" href="coverage.html"><span class="material-icons">health_and_safety</span> Coverage</a>
       <a class="nav-item" href="practitioners.html"><span class="material-icons">medical_services</span> Practitioner</a>
@@ -27,7 +28,7 @@
       <a class="nav-item" href="schedules.html"><span class="material-icons">calendar_month</span> Schedule &amp; Slot</a>
       <a class="nav-item" href="fhir-console.html"><span class="material-icons">terminal</span> Consola FHIR <span class="nav-badge">API</span></a>
       <div class="nav-section-title">Portal</div>
-      <a class="nav-item" href="../frontend-html/index.html" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
+      <a class="nav-item" href="../agenda/" target="_blank"><span class="material-icons">open_in_new</span> Portal Paciente</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" data-logout><span class="material-icons">logout</span> Cerrar sesión</button></div>
   </aside>
@@ -61,7 +62,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>ID FHIR</th><th>Paciente</th><th>EPS / Aseguradora</th><th>Tipo Plan</th><th>Plan</th><th>Vigencia</th><th>Tiempo consulta</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>ID FHIR</th><th>Beneficiario</th><th>EPS / Aseguradora</th><th>Régimen</th><th>Vigencia</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="covs-table"></tbody>
           </table>
@@ -98,8 +99,32 @@
 
         <div class="form-section-title">Partes del Contrato</div>
         <div class="form-group">
-          <label class="form-label">Paciente (beneficiario) <span class="required">*</span></label>
-          <select id="cov-patient" class="form-control" required></select>
+          <label class="form-label">Tomador (subscriber) <span class="required">*</span></label>
+          <select id="cov-subscriber" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Beneficiario <span class="required">*</span></label>
+          <select id="cov-beneficiary" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de tomador (policyHolder)</label>
+          <select id="cov-policy-holder" class="form-control">
+            <option value="self">Afiliado (mismo que tomador)</option>
+            <option value="estado">Estado Colombiano</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Documento del tomador (subscriberId)</label>
+          <input type="text" id="cov-subscriber-id" class="form-control" placeholder="CC123456789"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Parentesco (relación con tomador) <span class="required">*</span></label>
+          <select id="cov-relationship" class="form-control">
+            <option value="self">Titular (self)</option>
+            <option value="child">Hijo(a) (child)</option>
+            <option value="spouse">Cónyuge (spouse)</option>
+            <option value="other">Otro (other)</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">EPS / Aseguradora (payor) <span class="required">*</span></label>
@@ -108,57 +133,25 @@
 
         <div class="form-section-title">Plan de Salud</div>
         <div class="form-group">
-          <label class="form-label">Tipo de régimen</label>
-          <select id="cov-type" class="form-control">
-            <option value="PUBLICPOL">Contributivo</option>
-            <option value="SUBSIDPAD">Subsidiado</option>
-            <option value="PRIV">Prepagada / Privado</option>
+          <label class="form-label">Régimen <span class="required">*</span></label>
+          <select id="cov-regimen" class="form-control">
+            <option value="CONTRIBUTIVO">Contributivo</option>
+            <option value="SUBSIDIADO">Subsidiado</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Código del plan</label>
-          <input type="text" id="cov-plan-code" class="form-control" placeholder="PLAN-CONTRIB-A"/>
-        </div>
-        <div class="form-group full-width">
-          <label class="form-label">Nombre del plan</label>
-          <input type="text" id="cov-plan-name" class="form-control" placeholder="Plan Contributivo Nivel A"/>
+          <label class="form-label">Tipo de afiliado</label>
+          <select id="cov-tipo-afiliado" class="form-control">
+            <option value="">— Ninguno —</option>
+            <option value="AFILIADO_ADICIONAL">Afiliado Adicional</option>
+            <option value="PENSIONADO">Pensionado</option>
+          </select>
         </div>
 
-        <div class="form-section-title">Vigencia y Duración Base de Consulta</div>
+        <div class="form-section-title">Vigencia</div>
         <div class="form-group">
           <label class="form-label">Inicio de vigencia</label>
           <input type="date" id="cov-start" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fin de vigencia</label>
-          <input type="date" id="cov-end" class="form-control"/>
-        </div>
-        <div class="form-group full-width">
-          <label class="form-label">Duración base de control especializado (minutos) <span class="required">*</span></label>
-          <select id="cov-duration" class="form-control">
-            <option value="20">20 min — Salud Cooperativa, control telemedicina especializada</option>
-            <option value="25">25 min — Salud Completa, control telemedicina general</option>
-            <option value="30" selected>30 min — Salud Cooperativa, primera vez general / Salud Completa, control general</option>
-            <option value="45">45 min — Salud Cooperativa, primera vez especializada / Salud Completa, control especializada</option>
-            <option value="60">60 min — Salud Completa, primera vez especializada</option>
-          </select>
-          <span class="form-helper">La duración final se calcula automáticamente al agendar la cita según tipo de consulta + aseguradora. Este valor se usa como referencia base.</span>
-        </div>
-        <div class="form-group full-width">
-          <div class="alert alert-info" style="font-size:12px">
-            <span class="material-icons" style="font-size:16px">table_chart</span>
-            <div><strong>Tabla de tiempos según convenio ACME Salud:</strong><br/>
-            <table style="margin-top:6px;border-collapse:collapse;width:100%">
-              <tr style="background:#e3f2fd"><th style="padding:3px 8px;text-align:left;font-size:11px">Tipo de consulta</th><th style="padding:3px 8px;font-size:11px">Salud Cooperativa</th><th style="padding:3px 8px;font-size:11px">Salud Completa</th></tr>
-              <tr><td style="padding:2px 8px;font-size:11px">Primera vez med. general</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">45 min</td></tr>
-              <tr style="background:#f5f5f5"><td style="padding:2px 8px;font-size:11px">Primera vez especializada</td><td style="padding:2px 8px;font-size:11px;font-weight:600">45 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">60 min</td></tr>
-              <tr><td style="padding:2px 8px;font-size:11px">Control med. general</td><td style="padding:2px 8px;font-size:11px;font-weight:600">20 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td></tr>
-              <tr style="background:#f5f5f5"><td style="padding:2px 8px;font-size:11px">Control especializada</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">45 min</td></tr>
-              <tr><td style="padding:2px 8px;font-size:11px">Telemedicina control general</td><td style="padding:2px 8px;font-size:11px;font-weight:600">15 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">25 min</td></tr>
-              <tr style="background:#f5f5f5"><td style="padding:2px 8px;font-size:11px">Telemedicina control especializ.</td><td style="padding:2px 8px;font-size:11px;font-weight:600">20 min</td><td style="padding:2px 8px;font-size:11px;font-weight:600">30 min</td></tr>
-            </table>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -198,10 +191,18 @@ let editingCovId = null;
 function populateSelects() {
   const patients = getResources('Patient');
   const orgs = getResources('Organization').filter(o => o.type?.[0]?.coding?.[0]?.code === 'ins');
-  const patSel = document.getElementById('cov-patient');
+  const subSel = document.getElementById('cov-subscriber');
+  const benSel = document.getElementById('cov-beneficiary');
   const payorSel = document.getElementById('cov-payor');
-  patSel.innerHTML = patients.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+  const opts = patients.map(p => `<option value="${p.id}">${getPatientName(p)}</option>`).join('');
+  subSel.innerHTML = '<option value="">— Seleccionar —</option>' + opts;
+  benSel.innerHTML = '<option value="">— Seleccionar —</option>' + opts;
   payorSel.innerHTML = orgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+  subSel.addEventListener('change', function() {
+    const pat = getResource('Patient', this.value);
+    const idVal = pat?.identifier?.[0] ? pat.identifier[0].value : '';
+    document.getElementById('cov-subscriber-id').value = idVal;
+  });
 }
 
 function renderCovs(filter = '') {
@@ -215,10 +216,9 @@ function renderCovs(filter = '') {
   document.getElementById('cov-count').textContent = `${filtered.length} cobertura(s) registrada(s)`;
   document.getElementById('cov-pagination-info').textContent = `Mostrando ${filtered.length} de ${all.length}`;
 
-  const typeLabels = { PUBLICPOL: 'Contributivo', SUBSIDPAD: 'Subsidiado', PRIV: 'Prepagada' };
   const tbody = document.getElementById('covs-table');
   tbody.innerHTML = '';
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">Sin coberturas registradas</td></tr>'; return; }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">Sin coberturas registradas</td></tr>'; return; }
 
   filtered.forEach(cov => {
     const patRef = cov.beneficiary?.reference?.replace('Patient/', '');
@@ -228,11 +228,9 @@ function renderCovs(filter = '') {
     tr.innerHTML = `
       <td><span class="fhir-id">${cov.id}</span></td>
       <td>${pat ? `<strong>${getPatientName(pat)}</strong><br><span class="text-xs text-muted">${patRef}</span>` : patRef || '-'}</td>
-      <td>${cov.payor?.[0]?.display || cov.payor?.[0]?.reference || '-'}</td>
-      <td>${typeLabels[cov.type?.coding?.[0]?.code] || cov.type?.coding?.[0]?.display || '-'}</td>
-      <td>${cov.class?.[0]?.name || '-'}</td>
-      <td class="text-sm">${formatDate(cov.period?.start)} – ${formatDate(cov.period?.end)}</td>
-      <td><span class="badge badge-booked">${cov._consultaDuracion || 20} min</span></td>
+      <td>${cov.payor?.[0]?.display || (() => { const r = cov.payor?.[0]?.reference?.replace('Organization/',''); return r ? getResource('Organization', r)?.name || r : '-'; })()}</td>
+      <td>${getRegimenFromCov(cov)}${getTipoAfiliadoFromCov(cov) ? `<br><span class="text-xs text-muted">${getTipoAfiliadoFromCov(cov)}</span>` : ''}</td>
+      <td class="text-sm">${formatDate(cov.period?.start) || '-'}</td>
       <td><span class="badge ${statusBadge[cov.status] || 'badge-inactive'}">${cov.status}</span></td>
       <td>
         <div style="display:flex;gap:4px">
@@ -246,6 +244,16 @@ function renderCovs(filter = '') {
 
 function filterCovs() { renderCovs(document.getElementById('search-cov').value); }
 
+function getRegimenFromCov(cov) {
+  const c = cov?.class?.find(cl => cl.type?.text === 'Regimen');
+  return c?.value || 'CONTRIBUTIVO';
+}
+
+function getTipoAfiliadoFromCov(cov) {
+  const c = cov?.class?.find(cl => cl.type?.text === 'Tipo Afiliado');
+  return c?.value || '';
+}
+
 function openCovModal(cov = null) {
   editingCovId = cov?.id || null;
   populateSelects();
@@ -253,14 +261,16 @@ function openCovModal(cov = null) {
   document.getElementById('cov-id').value = cov?.id || '';
   document.getElementById('cov-id').disabled = !!cov;
   document.getElementById('cov-status').value = cov?.status || 'active';
-  document.getElementById('cov-patient').value = cov?.beneficiary?.reference?.replace('Patient/', '') || '';
+  document.getElementById('cov-subscriber').value = cov?.subscriber?.reference?.replace('Patient/', '') || '';
+  document.getElementById('cov-beneficiary').value = cov?.beneficiary?.reference?.replace('Patient/', '') || '';
+  document.getElementById('cov-policy-holder').value = cov?.policyHolder?.reference === 'Organization/estado-colombiano' ? 'estado' : 'self';
+  document.getElementById('cov-subscriber-id').value = cov?.subscriberId || '';
+  const relCode = cov?.relationship?.coding?.[0]?.code || 'self';
+  document.getElementById('cov-relationship').value = relCode;
   document.getElementById('cov-payor').value = cov?.payor?.[0]?.reference?.replace('Organization/', '') || '';
-  document.getElementById('cov-type').value = cov?.type?.coding?.[0]?.code || 'PUBLICPOL';
-  document.getElementById('cov-plan-code').value = cov?.class?.[0]?.value || '';
-  document.getElementById('cov-plan-name').value = cov?.class?.[0]?.name || '';
+  document.getElementById('cov-regimen').value = getRegimenFromCov(cov);
+  document.getElementById('cov-tipo-afiliado').value = getTipoAfiliadoFromCov(cov);
   document.getElementById('cov-start').value = cov?.period?.start || '';
-  document.getElementById('cov-end').value = cov?.period?.end || '';
-  document.getElementById('cov-duration').value = String(cov?._consultaDuracion || 20);
   openModal('cov-modal');
 }
 
@@ -268,42 +278,51 @@ function editCov(id) { const c = getResource('Coverage', id); if (c) openCovModa
 
 function saveCov() {
   const id = document.getElementById('cov-id').value.trim().replace(/\s+/g, '-');
-  const patId = document.getElementById('cov-patient').value;
+  const subscriberId = document.getElementById('cov-subscriber').value;
+  const beneficiaryId = document.getElementById('cov-beneficiary').value;
   const payorId = document.getElementById('cov-payor').value;
-  if (!id || !patId || !payorId) { toast('error', 'Error', 'ID, paciente y aseguradora son obligatorios'); return; }
+  if (!id || !subscriberId || !beneficiaryId || !payorId) { toast('error', 'Error', 'ID, tomador, beneficiario y aseguradora son obligatorios'); return; }
 
-  const pat = getResource('Patient', patId);
-  const payor = getResource('Organization', payorId);
-  const typeCode = document.getElementById('cov-type').value;
-  const typeLabels = { PUBLICPOL: 'Contributivo', SUBSIDPAD: 'Subsidiado', PRIV: 'Prepagada' };
+  const policyHolderType = document.getElementById('cov-policy-holder').value;
+  const regimen = document.getElementById('cov-regimen').value;
+  const tipoAfiliado = document.getElementById('cov-tipo-afiliado').value;
+  const relCode = document.getElementById('cov-relationship').value;
+  const start = document.getElementById('cov-start').value;
 
   const cov = {
     resourceType: 'Coverage', id,
     status: document.getElementById('cov-status').value,
-    type: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: typeCode, display: typeLabels[typeCode] }] },
-    subscriber: { reference: `Patient/${patId}` },
-    beneficiary: { reference: `Patient/${patId}`, display: getPatientName(pat) },
-    payor: [{ reference: `Organization/${payorId}`, display: payor?.name || payorId }],
-    period: { start: document.getElementById('cov-start').value, end: document.getElementById('cov-end').value },
-    class: [{
-      type: { coding: [{ code: 'plan' }] },
-      value: document.getElementById('cov-plan-code').value.trim(),
-      name: document.getElementById('cov-plan-name').value.trim()
-    }],
-    _consultaDuracion: parseInt(document.getElementById('cov-duration').value)
+    beneficiary: { reference: `Patient/${beneficiaryId}` },
+    subscriber: { reference: `Patient/${subscriberId}` },
+    policyHolder: policyHolderType === 'estado'
+      ? { reference: 'Organization/estado-colombiano' }
+      : { reference: `Patient/${subscriberId}` },
+    subscriberId: document.getElementById('cov-subscriber-id').value.trim() || undefined,
+    relationship: relCode === 'self'
+      ? { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/subscriber-relationship', code: 'self' }] }
+      : { coding: [{ code: relCode }] },
+    period: start ? { start } : undefined,
+    payor: [{ reference: `Organization/${payorId}`, display: getResource('Organization', payorId)?.name || payorId }],
+    class: [{ type: { text: 'Regimen' }, value: regimen }]
   };
 
-  if (editingCovId) { updateResource('Coverage', editingCovId, cov); closeModal('cov-modal'); toast('success', 'Éxito', 'Coverage actualizada'); }
-  else {
-    if (getResource('Coverage', id)) { toast('error', 'Error', 'Ya existe una Coverage con ese ID'); return; }
+  if (tipoAfiliado) {
+    cov.class.push({ type: { text: 'Tipo Afiliado' }, value: tipoAfiliado });
+  }
+
+  if (editingCovId) {
+    updateResource('Coverage', editingCovId, cov);
+    closeModal('cov-modal');
+    Swal.fire({ icon: 'success', title: 'Actualizada', text: 'Coverage actualizada', timer: 1500, showConfirmButton: false }).then(() => location.reload());
+  } else {
+    if (getResource('Coverage', id)) { Swal.fire({ icon: 'error', title: 'Error', text: 'Ya existe una Coverage con ese ID' }); return; }
     createResource('Coverage', cov);
     closeModal('cov-modal');
-    toast('success', 'Éxito', 'Coverage creada exitosamente');
+    Swal.fire({ icon: 'success', title: 'Creada', text: 'Coverage creada exitosamente', timer: 1500, showConfirmButton: false }).then(() => location.reload());
   }
-  renderCovs();
 }
 
-function openDeleteCov(id) { try { Swal.fire({ title: 'Eliminar Coverage', text: '¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Coverage', id); toast('warning', 'Atención', 'Coverage eliminada'); renderCovs(); } }); } catch(e) { if(confirm('¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.')) { deleteResource('Coverage', id); renderCovs(); } } }
+function openDeleteCov(id) { try { Swal.fire({ title: 'Eliminar Coverage', text: '¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, eliminar' }).then(result => { if (result.isConfirmed) { deleteResource('Coverage', id); Swal.fire({ icon: 'success', title: 'Eliminada', text: 'Coverage eliminada', timer: 1500, showConfirmButton: false }).then(() => location.reload()); } }); } catch(e) { if(confirm('¿Eliminar esta cobertura? El paciente quedará sin aseguradora asignada.')) { deleteResource('Coverage', id); location.reload(); } } }
 </script>
 </body>
 </html>
