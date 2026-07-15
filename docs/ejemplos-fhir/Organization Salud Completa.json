@@ -6,10 +6,10 @@
         {
             "use": "official",
             "type": {
-                "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/v2-0203", "code": "TAX", "display": "Tax ID number" }],
+                "coding": [{ "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers", "code": "NIT", "display": "Número de Identificación Tributaria" }],
                 "text": "NIT"
             },
-            "system": "urn:co:nit",
+            "system": "urn:oid:2.16.170.1.2.2.899999090.800197268.1.2",
             "value": "800123001-5"
         }
     ],

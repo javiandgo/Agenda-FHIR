@@ -4,7 +4,11 @@
   "identifier": [
     {
       "use": "official",
-      "system": "http://minsalud.gov.co/eps",
+      "type": {
+        "coding": [{ "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers", "code": "EAPB", "display": "Entidad Administradora de Planes de Beneficios" }],
+        "text": "EAPB"
+      },
+      "system": "urn:oid:2.16.170.1.2.2.899999090.800197268.1.2",
       "value": "EPS001"
     }
   ],

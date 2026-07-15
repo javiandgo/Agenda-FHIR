@@ -4,7 +4,11 @@
   "identifier": [
     {
       "use": "official",
-      "system": "http://minsalud.gov.co/rid",
+      "type": {
+        "coding": [{ "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers", "code": "CodigoPrestador", "display": "Código de habilitación de prestador de servicios de salud" }],
+        "text": "Código Prestador"
+      },
+      "system": "urn:oid:2.16.170.1.2.2.899999090.800197268.1.2",
       "value": "900123456-7"
     }
   ],

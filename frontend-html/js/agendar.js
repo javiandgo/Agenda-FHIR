@@ -6,7 +6,8 @@ const SPECIALTY_ICONS = {
   Cardiología: 'favorite',
   Nefrología: 'water_drop',
   Oncología: 'healing',
-  Gastroenterología: 'restaurant'
+  Gastroenterología: 'restaurant',
+  'Medicina general': 'stethoscope'
 };
 
 const DEFAULT_DURATION_FALLBACK = 30; // usado si el paciente no tiene Coverage registrada
@@ -107,12 +108,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadInitialData() {
-  const [pracBundle, rolesBundle, locBundle, schedBundle, slotsBundle] = await Promise.all([
+  const [pracBundle, rolesBundle, locBundle, schedBundle, slotsBundle, hsBundle] = await Promise.all([
     fetch(`${API}/Practitioner`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json()),
     fetch(`${API}/PractitionerRole`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json()),
     fetch(`${API}/Location`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json()),
     fetch(`${API}/Schedule`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json()),
-    fetch(`${API}/Slot?status=free`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json())
+    fetch(`${API}/Slot?status=free`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json()),
+    fetch(`${API}/HealthcareService`, { headers: { 'Accept': 'application/fhir+json' } }).then(r => r.json())
   ]);
 
   (schedBundle.entry || []).forEach(e => {
@@ -154,6 +156,14 @@ async function loadInitialData() {
     doctorRoles[pracId].push(specCode);
     if (!doctorLoc[pracId]) doctorLoc[pracId] = new Set();
     if (locRef) doctorLoc[pracId].add(locRef);
+  });
+
+  (hsBundle.entry || []).forEach(e => {
+    const r = e.resource;
+    const spec = r.specialty?.[0]?.coding?.[0];
+    if (spec?.code && !seenSpecs[spec.code]) {
+      seenSpecs[spec.code] = { code: spec.code, name: spec.display || spec.code };
+    }
   });
 
   specialties = Object.values(seenSpecs);
@@ -211,12 +221,20 @@ function initEventListeners() {
     verifyBtn.innerHTML = '<span class="material-icons" slot="icon">hourglass_top</span> Verificando...';
     const resultDiv = document.getElementById('patient-result');
     resultDiv.style.display = 'none';
+    const oldSystems = { 'urn:oid:2.16.170.3.899999040.1.4': 'urn:co:cc', 'urn:oid:2.16.170.1.2.2.899999042.1.3': 'urn:co:ce', 'urn:oid:2.16.170.3.899999040.1.3': 'urn:co:ti', 'urn:oid:2.16.170.3.899999040.1.2': 'urn:co:rc', 'urn:oid:2.16.170.1.2.2.899999042.1.1': 'urn:co:pp', 'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2': 'urn:co:nt' };
     try {
-      const resp = await fetch(`${API}/Patient?identifier=${system}|${encodeURIComponent(value)}`, {
+      let resp = await fetch(`${API}/Patient?identifier=${system}|${encodeURIComponent(value)}`, {
         headers: { 'Accept': 'application/fhir+json' }
       });
-      const bundle = await resp.json();
-      const patients = (bundle.entry || []).map(e => e.resource);
+      let bundle = await resp.json();
+      let patients = (bundle.entry || []).map(e => e.resource);
+      if (patients.length === 0 && oldSystems[system]) {
+        resp = await fetch(`${API}/Patient?identifier=${oldSystems[system]}|${encodeURIComponent(value)}`, {
+          headers: { 'Accept': 'application/fhir+json' }
+        });
+        bundle = await resp.json();
+        patients = (bundle.entry || []).map(e => e.resource);
+      }
       if (patients.length > 0) {
         const p = patients[0];
         selectedData.patientId = p.id;
@@ -322,9 +340,12 @@ function initEventListeners() {
 function renderDoctorList(locationFilter) {
   const container = document.querySelector('.doctors-list');
   if (!container) return;
-  const allPracIds = Object.keys(doctorRoles).filter(id =>
+  let allPracIds = Object.keys(doctorRoles).filter(id =>
     (doctorRoles[id] || []).includes(selectedData.specialtyCode)
   );
+  if (allPracIds.length === 0) {
+    allPracIds = Object.keys(doctorRoles);
+  }
 
   let filtered = allPracIds;
   if (locationFilter) {
@@ -448,15 +469,19 @@ async function populateCalendarAndSlots() {
 
   const grid = document.querySelector('.calendar-grid');
   const dayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-  const firstDate = new Date(dates[0]);
+  // Se parsea a mediodía local (no medianoche UTC) para que getDay()/getDate() no
+  // retrocedan un día en husos horarios negativos (ej. Colombia UTC-5).
+  const firstDate = new Date(dates[0] + 'T12:00:00');
   const firstDay = firstDate.getDay() || 7;
-  const lastDate = new Date(dates[dates.length - 1]);
+  const lastDate = new Date(dates[dates.length - 1] + 'T12:00:00');
   const monthLabel = firstDate.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
   const monthHeader = document.querySelector('.calendar-header h3');
   if (monthHeader) monthHeader.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
   const offset = firstDay - 1;
-  const totalDays = lastDate.getDate() - firstDate.getDate() + 1 + offset;
+  // Diferencia en milisegundos en vez de restar getDate(): esta última falla cuando
+  // firstDate y lastDate caen en meses distintos.
+  const daysInSpan = Math.round((lastDate - firstDate) / 86400000) + 1;
 
   grid.innerHTML = dayHeaders.map(d => `<div class="calendar-day-header">${d}</div>`).join('');
 
@@ -464,10 +489,10 @@ async function populateCalendarAndSlots() {
     grid.innerHTML += '<div class="calendar-day empty"></div>';
   }
 
-  for (let d = 0; d < totalDays - offset; d++) {
+  for (let d = 0; d < daysInSpan; d++) {
     const date = new Date(firstDate);
     date.setDate(firstDate.getDate() + d);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const isAvailable = dates.includes(dateStr);
     const day = date.getDate();
     grid.innerHTML += `<div class="calendar-day ${isAvailable ? 'available' : 'unavailable'}" data-date="${dateStr}">${day}</div>`;

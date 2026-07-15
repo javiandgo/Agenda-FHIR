@@ -247,7 +247,7 @@ function renderOrgs(filter = '') {
   }
 
   filtered.forEach(org => {
-    const nit = org.identifier?.find(i => i.system?.includes('minsalud'))?.value || '-';
+    const nit = org.identifier?.find(i => i.type?.coding?.[0]?.code === 'NIT')?.value || org.identifier?.[0]?.value || '-';
     const type = org.type?.[0]?.coding?.[0];
     const phone = org.telecom?.find(t => t.system === 'phone')?.value || '-';
     const city = org.address?.[0]?.city || '-';
@@ -283,7 +283,7 @@ function openOrgModal(org = null) {
   document.getElementById('org-modal-title').textContent = org ? 'Editar Organization' : 'Nueva Organization';
   document.getElementById('org-id').value = org?.id || '';
   document.getElementById('org-id').disabled = !!org;
-  document.getElementById('org-nit').value = org?.identifier?.find(i => i.system?.includes('minsalud'))?.value || '';
+  document.getElementById('org-nit').value = org?.identifier?.find(i => i.type?.coding?.[0]?.code === 'NIT')?.value || org?.identifier?.[0]?.value || '';
   document.getElementById('org-name').value = org?.name || '';
   document.getElementById('org-alias').value = org?.alias?.[0] || '';
   document.getElementById('org-type').value = org?.type?.[0]?.coding?.[0]?.code || 'prov';
@@ -319,9 +319,19 @@ async function saveOrg() {
   if (email) telecom.push({ system: 'email', value: email });
 
   const nit = document.getElementById('org-nit').value.trim();
+  const identifier = nit ? [{
+    use: 'official',
+    type: {
+      coding: [{ system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' }],
+      text: 'NIT'
+    },
+    system: 'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2',
+    value: nit
+  }] : [];
+
   const org = {
     resourceType: 'Organization', id,
-    identifier: nit ? [{ use: 'official', system: 'http://minsalud.gov.co/rid', value: nit }] : [],
+    identifier,
     active: document.getElementById('org-active').value === 'true',
     type: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/organization-type', code: typeCode, display: typeLabels[typeCode] }] }],
     name,

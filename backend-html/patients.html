@@ -62,7 +62,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>ID FHIR</th><th>Cédula</th><th>Nombre completo</th><th>Género</th><th>Fecha nacimiento</th><th>Edad</th><th>Teléfono</th><th>Cobertura</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>ID FHIR</th><th>Documento</th><th>Nombre completo</th><th>Género</th><th>Fecha nacimiento</th><th>Edad</th><th>Teléfono</th><th>Cobertura</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="pats-table"></tbody>
           </table>
@@ -90,8 +90,19 @@
           <input type="text" id="pat-id" class="form-control" placeholder="pat-001" required/>
         </div>
         <div class="form-group">
-          <label class="form-label">Cédula de Ciudadanía <span class="required">*</span></label>
-          <input type="text" id="pat-cc" class="form-control" placeholder="1020123456" required/>
+          <label class="form-label">Tipo de documento <span class="required">*</span></label>
+          <select id="pat-doc-type" class="form-control">
+            <option value="urn:oid:2.16.170.3.899999040.1.4">Cédula de Ciudadanía (CC)</option>
+            <option value="urn:oid:2.16.170.1.2.2.899999042.1.3">Cédula de Extranjería (CE)</option>
+            <option value="urn:oid:2.16.170.3.899999040.1.3">Tarjeta de Identidad (TI)</option>
+            <option value="urn:oid:2.16.170.3.899999040.1.2">Registro Civil (RC)</option>
+            <option value="urn:oid:2.16.170.1.2.2.899999042.1.1">Pasaporte (PA)</option>
+            <option value="urn:oid:2.16.170.1.2.2.899999090.800197268.1.2">NIT / RUT</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Número de documento <span class="required">*</span></label>
+          <input type="text" id="pat-doc-number" class="form-control" placeholder="1020123456" required/>
         </div>
 
         <div class="form-section-title">Información Personal</div>
@@ -198,7 +209,7 @@ let editingPatId = null;
 function renderPats(filter = '') {
   const all = getResources('Patient');
   const coverages = getResources('Coverage');
-  const filtered = filter ? all.filter(p => getPatientName(p).toLowerCase().includes(filter.toLowerCase()) || (p.identifier?.[0]?.value || '').includes(filter)) : all;
+  const filtered = filter ? all.filter(p => getPatientName(p).toLowerCase().includes(filter.toLowerCase()) || (p.identifier?.[0]?.value || '').includes(filter) || (p.identifier?.[0]?.type?.text || '').toLowerCase().includes(filter.toLowerCase())) : all;
 
   document.getElementById('pat-count').textContent = `${filtered.length} paciente(s) registrado(s)`;
   document.getElementById('pat-pagination-info').textContent = `Mostrando ${filtered.length} de ${all.length}`;
@@ -208,13 +219,14 @@ function renderPats(filter = '') {
   if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--md-sys-color-on-surface-variant)">No se encontraron pacientes</td></tr>'; return; }
 
   filtered.forEach(pat => {
-    const cc = pat.identifier?.find(i => i.system?.includes('cc'))?.value || '-';
+    const idEntry = pat.identifier?.[0];
+    const docLabel = idEntry ? `${idEntry.type?.text || idEntry.system?.split(':').pop()?.toUpperCase() || '?'} ${idEntry.value}` : '-';
     const cov = coverages.find(c => c.beneficiary?.reference === `Patient/${pat.id}`);
     const genderLabel = { female: 'Femenino', male: 'Masculino', other: 'Otro', unknown: 'Desconocido' };
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="fhir-id">${pat.id}</span></td>
-      <td>${cc}</td>
+      <td>${docLabel}</td>
       <td><strong>${getPatientName(pat)}</strong></td>
       <td>${genderLabel[pat.gender] || '-'}</td>
       <td>${formatDate(pat.birthDate)}</td>
@@ -240,7 +252,10 @@ function openPatModal(pat = null) {
   document.getElementById('pat-modal-title').textContent = pat ? 'Editar Patient' : 'Nuevo Patient';
   document.getElementById('pat-id').value = pat?.id || '';
   document.getElementById('pat-id').disabled = !!pat;
-  document.getElementById('pat-cc').value = pat?.identifier?.find(i => i.system?.includes('cc'))?.value || '';
+  const idEntry = pat?.identifier?.[0];
+  const oldToNew = { 'urn:co:cc': 'urn:oid:2.16.170.3.899999040.1.4', 'urn:co:ce': 'urn:oid:2.16.170.1.2.2.899999042.1.3', 'urn:co:ti': 'urn:oid:2.16.170.3.899999040.1.3', 'urn:co:rc': 'urn:oid:2.16.170.3.899999040.1.2', 'urn:co:pp': 'urn:oid:2.16.170.1.2.2.899999042.1.1', 'urn:co:nt': 'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2' };
+  document.getElementById('pat-doc-type').value = oldToNew[idEntry?.system] || idEntry?.system || 'urn:oid:2.16.170.3.899999040.1.4';
+  document.getElementById('pat-doc-number').value = idEntry?.value || '';
   const given = pat?.name?.[0]?.given || [];
   document.getElementById('pat-given1').value = given[0] || '';
   document.getElementById('pat-given2').value = given[1] || '';
@@ -257,11 +272,22 @@ function openPatModal(pat = null) {
 
 function editPat(id) { const p = getResource('Patient', id); if (p) openPatModal(p); }
 
+const DOC_TYPES = {
+  'urn:oid:2.16.170.3.899999040.1.4':  { code: 'CC', display: 'Cédula ciudadanía', text: 'CC' },
+  'urn:oid:2.16.170.1.2.2.899999042.1.3': { code: 'CE', display: 'Cédula de extranjería', text: 'CE' },
+  'urn:oid:2.16.170.3.899999040.1.3':  { code: 'TI', display: 'Tarjeta de Identidad', text: 'TI' },
+  'urn:oid:2.16.170.3.899999040.1.2':  { code: 'RC', display: 'Registro civil', text: 'RC' },
+  'urn:oid:2.16.170.1.2.2.899999042.1.1':  { code: 'PA', display: 'Pasaporte', text: 'PA' },
+  'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2': { code: 'RUT', display: 'Registro Único Tributario', text: 'NIT' }
+};
+
 function savePat() {
   const id = document.getElementById('pat-id').value.trim().replace(/\s+/g, '-');
   const given1 = document.getElementById('pat-given1').value.trim();
   const family = document.getElementById('pat-family').value.trim();
+  const docValue = document.getElementById('pat-doc-number').value.trim();
   if (!id || !given1 || !family) { toast('error', 'Error', 'ID, nombre y apellido son obligatorios'); return; }
+  if (!docValue) { toast('error', 'Error', 'El número de documento es obligatorio'); return; }
 
   const given = [given1];
   const given2 = document.getElementById('pat-given2').value.trim();
@@ -273,10 +299,22 @@ function savePat() {
   if (phone) telecom.push({ system: 'phone', value: phone, use: 'mobile' });
   if (email) telecom.push({ system: 'email', value: email });
 
-  const cc = document.getElementById('pat-cc').value.trim();
+  const docSystem = document.getElementById('pat-doc-type').value;
+  const docType = DOC_TYPES[docSystem] || DOC_TYPES['urn:oid:2.16.170.3.899999040.1.4'];
+
+  const identifier = docValue ? [{
+    use: 'official',
+    type: {
+      coding: [{ system: 'http://terminology.fhir.guide/co/CodeSystem/ColombianPersonIdentifier', code: docType.code, display: docType.display }],
+      text: docType.text
+    },
+    system: docSystem,
+    value: docValue
+  }] : [];
+
   const pat = {
     resourceType: 'Patient', id,
-    identifier: cc ? [{ use: 'official', type: { coding: [{ code: 'NI', display: 'Cédula de Ciudadanía' }], text: 'Cédula de Ciudadanía' }, system: 'urn:co:cc', value: cc }] : [],
+    identifier,
     active: document.getElementById('pat-active').value === 'true',
     name: [{ use: 'official', family, given }],
     telecom,
@@ -303,7 +341,7 @@ function viewPat(id) {
   document.getElementById('view-pat-body').innerHTML = `
     <div class="form-grid">
       <div class="form-group"><label class="form-label">ID FHIR</label><div><span class="fhir-id">${pat.id}</span></div></div>
-      <div class="form-group"><label class="form-label">Cédula</label><div>${pat.identifier?.[0]?.value || '-'}</div></div>
+      <div class="form-group"><label class="form-label">Documento</label><div>${(() => { const idEntry = pat.identifier?.[0]; return idEntry ? `${idEntry.type?.text || idEntry.system?.split(':').pop()?.toUpperCase() || '?'} ${idEntry.value}` : '-'; })()}</div></div>
       <div class="form-group"><label class="form-label">Nombre</label><div class="fw-600">${getPatientName(pat)}</div></div>
       <div class="form-group"><label class="form-label">Género</label><div>${pat.gender || '-'}</div></div>
       <div class="form-group"><label class="form-label">Fecha de nacimiento</label><div>${formatDate(pat.birthDate)}</div></div>

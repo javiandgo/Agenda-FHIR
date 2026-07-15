@@ -1,6 +1,9 @@
 RewriteEngine On
 RewriteBase /Agenda-FHIR/
 
+# Raíz → redirige a la agenda
+RewriteRule ^$ agenda/ [R=301,L]
+
 # /agenda/* → frontend-html/*
 RewriteRule ^agenda$ agenda/ [R=301,L]
 RewriteRule ^agenda/(.*)$ frontend-html/$1 [L]

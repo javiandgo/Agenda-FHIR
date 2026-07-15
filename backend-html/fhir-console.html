@@ -168,7 +168,8 @@ const FHIR_EXAMPLES = {
         resourceType: 'Patient',
         identifier: [{
             use: 'official',
-            type: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'CC', display: 'Cédula de Ciudadanía' }] },
+            type: { coding: [{ system: 'http://terminology.fhir.guide/co/CodeSystem/ColombianPersonIdentifier', code: 'CC', display: 'Cédula ciudadanía' }], text: 'CC' },
+            system: 'urn:oid:2.16.170.3.899999040.1.4',
             value: '10102020'
         }],
         active: true,
@@ -179,7 +180,12 @@ const FHIR_EXAMPLES = {
     },
     Organization: {
         resourceType: 'Organization',
-        identifier: [{ use: 'official', system: 'http://minsalud.gov.co/rid', value: '900123456-7' }],
+        identifier: [{
+            use: 'official',
+            type: { coding: [{ system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' }], text: 'NIT' },
+            system: 'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2',
+            value: '900123456-7'
+        }],
         active: true,
         type: [{
             coding: [{ system: 'http://terminology.hl7.org/CodeSystem/organization-type', code: 'prov', display: 'Healthcare Provider' }]
@@ -193,7 +199,7 @@ const FHIR_EXAMPLES = {
     },
     Location: {
         resourceType: 'Location',
-        identifier: [{ system: 'http://acmesalud.com/identificador-sedes', value: '1100155555-2' }],
+        identifier: [{ system: 'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2', value: '1100155555-2' }],
         status: 'active',
         name: 'Sede Nueva',
         description: 'Punto de atención nueva sede',
@@ -206,7 +212,10 @@ const FHIR_EXAMPLES = {
     },
     Practitioner: {
         resourceType: 'Practitioner',
-        identifier: [{ use: 'official', value: '777666555' }],
+        identifier: [
+            { use: 'official', system: 'urn:oid:2.16.170.1.2.2.899999090.800197268.1.2', value: '777666555', type: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'MD', display: 'Medical License number' }], text: 'TP' } },
+            { use: 'official', system: 'urn:oid:2.16.170.3.899999040.1.4', value: '79123456', type: { coding: [{ system: 'http://terminology.fhir.guide/co/CodeSystem/ColombianPersonIdentifier', code: 'CC', display: 'Cédula ciudadanía' }], text: 'CC' } }
+        ],
         name: [{ family: 'Fonseca', given: ['Alonso'] }]
     },
     PractitionerRole: {
